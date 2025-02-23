@@ -44,4 +44,7 @@ const userSlice = createSlice({
 });
 
 export const { setUser, clearUser } = userSlice.actions;
+
+export const selectUserUid = (state: { user: UserState }) => state.user.uid;
+
 export default userSlice.reducer;
