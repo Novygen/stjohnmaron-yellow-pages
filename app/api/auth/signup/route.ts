@@ -1,8 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // app/api/auth/signup/route.ts
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongoose";
 import { signupSchema } from "@/lib/validators";
-import { createMember } from "@/services/memberService";
 import jwt from "jsonwebtoken";
 
 export async function POST(request: Request) {
@@ -16,14 +16,11 @@ export async function POST(request: Request) {
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.errors }, { status: 400 });
     }
-    const { email, password, primary_phone_number } = parsed.data;
-
-    // Create the member using our service
-    const member = await createMember({ email, password, primary_phone_number });
+    const { email } = parsed.data;
 
     // Generate a JWT token for authentication
     const token = jwt.sign(
-      { memberId: member._id, email },
+      { memberId: email },
       process.env.JWT_SECRET || "secretkey",
       { expiresIn: "1d" }
     );
@@ -32,7 +29,7 @@ export async function POST(request: Request) {
       {
         message: "Member account created successfully",
         token,
-        memberId: member._id,
+        memberId: email,
       },
       { status: 201 }
     );
