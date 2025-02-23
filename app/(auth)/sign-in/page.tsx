@@ -1,7 +1,12 @@
+// app/(auth)/sign-in/page.tsx
 "use client";
 
 import { FormEvent, useState } from "react";
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+} from "firebase/auth";
 import { auth } from "@/firebase";
 import { useAppDispatch } from "@/hooks/useAppDispatch";
 import { setUser } from "@/store/slices/userSlice";
@@ -13,13 +18,23 @@ export default function SignInPage() {
   const dispatch = useAppDispatch();
   const router = useRouter();
 
+  const checkMembershipStatus = async (uid: string) => {
+    const res = await fetch(`/api/membership-request/status/${uid}`);
+    if (!res.ok) {
+      throw new Error('Failed to fetch membership status');
+    }
+    const data = await res.json();
+    return data.submitted;
+  };
+
   const handleEmailSignIn = async (e: FormEvent) => {
     e.preventDefault();
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       dispatch(setUser({ uid: user.uid, email: user.email, displayName: user.displayName }));
-      router.push("/dashboard");
+      const submitted = await checkMembershipStatus(user.uid);
+      router.push(submitted ? "/dashboard" : "/onboarding");
     } catch (error) {
       alert(error);
     }
@@ -31,7 +46,8 @@ export default function SignInPage() {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
       dispatch(setUser({ uid: user.uid, email: user.email, displayName: user.displayName }));
-      router.push("/dashboard");
+      const submitted = await checkMembershipStatus(user.uid);
+      router.push(submitted ? "/dashboard" : "/onboarding");
     } catch (error) {
       alert(error);
     }
@@ -39,10 +55,7 @@ export default function SignInPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
-      <form
-        onSubmit={handleEmailSignIn}
-        className="w-full max-w-md bg-white p-6 rounded shadow"
-      >
+      <form onSubmit={handleEmailSignIn} className="w-full max-w-md bg-white p-6 rounded shadow">
         <h2 className="text-2xl font-semibold mb-4">Sign In to Woorkroom</h2>
         <div className="mb-4">
           <label className="block mb-1">Email Address</label>
@@ -66,15 +79,10 @@ export default function SignInPage() {
             required
           />
         </div>
-        <button
-          type="submit"
-          className="bg-blue-600 text-white w-full py-2 rounded hover:bg-blue-700"
-        >
+        <button type="submit" className="bg-blue-600 text-white w-full py-2 rounded hover:bg-blue-700">
           Sign In
         </button>
-
         <hr className="my-4" />
-
         <button
           type="button"
           onClick={handleGoogleSignIn}
