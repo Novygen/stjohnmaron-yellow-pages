@@ -5,7 +5,7 @@ interface UserState {
   email: string | null;
   displayName?: string | null;
   phoneNumber?: string | null;
-  // You can add more fields as needed
+  token?: string | null;
   isAuthenticated: boolean;
 }
 
@@ -14,6 +14,7 @@ const initialState: UserState = {
   email: null,
   displayName: null,
   phoneNumber: null,
+  token: null,
   isAuthenticated: false,
 };
 
@@ -26,6 +27,8 @@ const userSlice = createSlice({
       state.email = action.payload.email ?? null;
       state.displayName = action.payload.displayName ?? null;
       state.phoneNumber = action.payload.phoneNumber ?? null;
+      state.token = action.payload.token;
+      localStorage.setItem("token", state.token ?? "");
       state.isAuthenticated = true;
     },
     clearUser(state) {
@@ -33,6 +36,8 @@ const userSlice = createSlice({
       state.email = null;
       state.displayName = null;
       state.phoneNumber = null;
+      state.token = null;
+      localStorage.removeItem("token");
       state.isAuthenticated = false;
     },
   },

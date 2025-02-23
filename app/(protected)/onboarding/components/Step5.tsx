@@ -1,62 +1,95 @@
 // app/(protected)/onboarding/components/Step5.tsx
-import { useOnboarding } from "../hooks/useOnboarding";
+"use client";
 
-const Step5 = () => {
-  const { goNext, goBack, updateField, data } = useOnboarding();
+import { useEffect } from "react";
+import useOnboarding from "../hooks/useOnboarding";
+
+export default function Step5() {
+  const {
+    currentStep,
+    loading,
+    step5Data,
+    setStep5Data,
+    loadStep,
+    saveStep,
+  } = useOnboarding();
+
+  useEffect(() => {
+    if (currentStep === 5) {
+      loadStep(5);
+    }
+  }, [currentStep, loadStep]);
+
+  function handleNext() {
+    saveStep(5, true);
+  }
+  function handleBack() {
+    saveStep(5, false);
+  }
 
   return (
-    <div className="w-full max-w-lg p-6 bg-white shadow-lg rounded-lg">
-      <h2 className="text-xl font-semibold mb-4">
-        Step 5: Community Engagement
-      </h2>
+    <div className="bg-white p-4 rounded shadow w-full max-w-md mx-auto">
+      <h2 className="text-xl font-bold mb-4">Step 5: Community Engagement</h2>
+      {loading && <p className="text-blue-600 mb-4">Saving/Loading data...</p>}
 
-      <div className="mb-4">
-        <label className="block mb-2">
-          Are you interested in networking with other parishioners?
-        </label>
-        <select
-          className="w-full p-2 border rounded-md"
-          value={data.networkingInterest || ""}
-          onChange={(e) => updateField("networkingInterest", e.target.value)}
-        >
-          <option value="">Select</option>
-          <option value="yes">Yes</option>
-          <option value="no">No</option>
-        </select>
-      </div>
+      <label className="block mb-1 font-semibold">
+        Interested in networking with other parishioners?
+      </label>
+      <select
+        className="border w-full mb-2 p-2 rounded"
+        value={step5Data.additionalInterests.networking_interest ? "yes" : "no"}
+        onChange={(e) =>
+          setStep5Data({
+            ...step5Data,
+            additionalInterests: {
+              ...step5Data.additionalInterests,
+              networking_interest: e.target.value === "yes",
+            },
+          })
+        }
+      >
+        <option value="no">No</option>
+        <option value="yes">Yes</option>
+      </select>
 
-      <div className="mb-4">
-        <label className="block mb-2">
-          Would you like to mentor or be mentored in your professional field?
-        </label>
-        <select
-          className="w-full p-2 border rounded-md"
-          value={data.mentorshipPreference || ""}
-          onChange={(e) => updateField("mentorshipPreference", e.target.value)}
-        >
-          <option value="">Select</option>
-          <option value="mentor">Mentor</option>
-          <option value="mentee">Mentee</option>
-          <option value="both">Both</option>
-        </select>
-      </div>
+      <label className="block mb-1 font-semibold">
+        Mentorship Preference
+      </label>
+      <select
+        className="border w-full mb-2 p-2 rounded"
+        value={step5Data.additionalInterests.mentorship_preference}
+        onChange={(e) =>
+          setStep5Data({
+            ...step5Data,
+            additionalInterests: {
+              ...step5Data.additionalInterests,
+              mentorship_preference: e.target.value,
+            },
+          })
+        }
+      >
+        <option value="">Select</option>
+        <option value="mentor">Mentor</option>
+        <option value="mentee">Mentee</option>
+        <option value="both">Both</option>
+      </select>
 
-      <div className="flex justify-between mt-6">
+      <div className="flex justify-between mt-4">
         <button
-          className="bg-gray-300 px-4 py-2 rounded-md"
-          onClick={goBack}
+          onClick={handleBack}
+          className="bg-gray-300 text-black px-4 py-2 rounded"
+          disabled={loading}
         >
           Previous
         </button>
         <button
-          className="bg-blue-500 text-white px-4 py-2 rounded-md"
-          onClick={goNext}
+          onClick={handleNext}
+          className="bg-blue-500 text-white px-4 py-2 rounded"
+          disabled={loading}
         >
           Next
         </button>
       </div>
     </div>
   );
-};
-
-export default Step5;
+}

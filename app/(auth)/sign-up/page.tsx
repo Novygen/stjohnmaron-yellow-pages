@@ -45,6 +45,7 @@ export default function SignUpPage() {
           uid: user.uid,
           email: user.email,
           displayName: user.displayName,
+          token: await user.getIdToken(),
         })
       );
       // Navigate to your onboarding flow
@@ -65,6 +66,7 @@ export default function SignUpPage() {
           uid: user.uid,
           email: user.email,
           displayName: user.displayName,
+          token: await result.user.getIdToken(),
         })
       );
       router.push("/onboarding");

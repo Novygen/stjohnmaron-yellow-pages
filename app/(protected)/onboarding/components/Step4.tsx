@@ -1,86 +1,137 @@
 // app/(protected)/onboarding/components/Step4.tsx
-import { useOnboarding } from "../hooks/useOnboarding";
+"use client";
 
-const Step4 = () => {
-  const { goNext, goBack, updateField, data } = useOnboarding();
+import { useEffect } from "react";
+import useOnboarding from "../hooks/useOnboarding";
+
+export default function Step4() {
+  const {
+    currentStep,
+    loading,
+    step4Data,
+    setStep4Data,
+    loadStep,
+    saveStep,
+  } = useOnboarding();
+
+  useEffect(() => {
+    if (currentStep === 4) {
+      loadStep(4);
+    }
+  }, [currentStep, loadStep]);
+
+  function handleNext() {
+    saveStep(4, true);
+  }
+  function handleBack() {
+    saveStep(4, false);
+  }
 
   return (
-    <div className="w-full max-w-lg p-6 bg-white shadow-lg rounded-lg">
-      <h2 className="text-xl font-semibold mb-4">
-        Step 4: Social & Online Presence
+    <div className="bg-white p-4 rounded shadow w-full max-w-md mx-auto">
+      <h2 className="text-xl font-bold mb-4">
+        Step 4: Social &amp; Online Presence
       </h2>
+      {loading && <p className="text-blue-600 mb-4">Saving/Loading data...</p>}
 
-      <div className="mb-4">
-        <label className="block mb-2">Personal Website / Blog</label>
-        <input
-          type="text"
-          placeholder="https://yourwebsite.com"
-          className="w-full p-2 border rounded-md"
-          value={data.personalWebsite || ""}
-          onChange={(e) => updateField("personalWebsite", e.target.value)}
-        />
-      </div>
+      <label className="block mb-1 font-semibold">Personal Website</label>
+      <input
+        className="border w-full mb-2 p-2 rounded"
+        placeholder="https://mywebsite.com"
+        value={step4Data.socialPresence.personal_website || ""}
+        onChange={(e) =>
+          setStep4Data({
+            ...step4Data,
+            socialPresence: {
+              ...step4Data.socialPresence,
+              personal_website: e.target.value,
+            },
+          })
+        }
+      />
 
-      <div className="mb-4">
-        <label className="block mb-2">LinkedIn Profile</label>
-        <input
-          type="text"
-          placeholder="LinkedIn URL"
-          className="w-full p-2 border rounded-md"
-          value={data.linkedin || ""}
-          onChange={(e) => updateField("linkedin", e.target.value)}
-        />
-      </div>
+      <label className="block mb-1 font-semibold">LinkedIn Profile</label>
+      <input
+        className="border w-full mb-2 p-2 rounded"
+        placeholder="LinkedIn URL"
+        value={step4Data.socialPresence.linked_in_profile || ""}
+        onChange={(e) =>
+          setStep4Data({
+            ...step4Data,
+            socialPresence: {
+              ...step4Data.socialPresence,
+              linked_in_profile: e.target.value,
+            },
+          })
+        }
+      />
 
-      <div className="mb-4">
-        <label className="block mb-2">Facebook Profile</label>
-        <input
-          type="text"
-          placeholder="Facebook URL"
-          className="w-full p-2 border rounded-md"
-          value={data.facebook || ""}
-          onChange={(e) => updateField("facebook", e.target.value)}
-        />
-      </div>
+      <label className="block mb-1 font-semibold">Facebook Profile</label>
+      <input
+        className="border w-full mb-2 p-2 rounded"
+        placeholder="Facebook URL"
+        value={step4Data.socialPresence.facebook_profile || ""}
+        onChange={(e) =>
+          setStep4Data({
+            ...step4Data,
+            socialPresence: {
+              ...step4Data.socialPresence,
+              facebook_profile: e.target.value,
+            },
+          })
+        }
+      />
 
-      <div className="mb-4">
-        <label className="block mb-2">Instagram Handle</label>
-        <input
-          type="text"
-          placeholder="@yourhandle"
-          className="w-full p-2 border rounded-md"
-          value={data.instagram || ""}
-          onChange={(e) => updateField("instagram", e.target.value)}
-        />
-      </div>
+      <label className="block mb-1 font-semibold">Instagram Handle</label>
+      <input
+        className="border w-full mb-2 p-2 rounded"
+        placeholder="@instagram"
+        value={step4Data.socialPresence.instagram_handle || ""}
+        onChange={(e) =>
+          setStep4Data({
+            ...step4Data,
+            socialPresence: {
+              ...step4Data.socialPresence,
+              instagram_handle: e.target.value,
+            },
+          })
+        }
+      />
 
-      <div className="mb-4">
-        <label className="block mb-2">Other Social Media Links</label>
-        <input
-          type="text"
-          placeholder="Comma-separated URLs"
-          className="w-full p-2 border rounded-md"
-          value={data.otherSocialLinks || ""}
-          onChange={(e) => updateField("otherSocialLinks", e.target.value)}
-        />
-      </div>
+      <label className="block mb-1 font-semibold">Other Social Links</label>
+      <textarea
+        className="border w-full mb-2 p-2 rounded"
+        placeholder="One URL per line or comma-separated"
+        value={step4Data.socialPresence.other_social_media_links.join(", ")}
+        onChange={(e) =>
+          setStep4Data({
+            ...step4Data,
+            socialPresence: {
+              ...step4Data.socialPresence,
+              other_social_media_links: e.target.value
+                .split(",")
+                .map((link) => link.trim()),
+            },
+          })
+        }
+      />
 
-      <div className="flex justify-between mt-6">
+      <div className="flex justify-between mt-4">
         <button
-          className="bg-gray-300 px-4 py-2 rounded-md"
-          onClick={goBack}
+          onClick={handleBack}
+          className="bg-gray-300 text-black px-4 py-2 rounded"
+          disabled={loading}
         >
           Previous
         </button>
         <button
-          className="bg-blue-500 text-white px-4 py-2 rounded-md"
-          onClick={goNext}
+          onClick={handleNext}
+          className="bg-blue-500 text-white px-4 py-2 rounded"
+          disabled={loading}
         >
           Next
         </button>
       </div>
     </div>
   );
-};
-
-export default Step4;
+}

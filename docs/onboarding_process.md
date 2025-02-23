@@ -367,6 +367,14 @@ classDiagram
     Member --> SocialPresence
     Member --> AdditionalInterests
     Member --> PrivacyConsent
+    Member --> MemberMetaData
+
+    class MemberMetaData {
+        +Date created_at
+        +Date updated_at
+        +Boolean is_public
+        +Boolean is_approved
+    }
 
     class PersonalDetails {
         +String firstName
@@ -478,4 +486,167 @@ classDiagram
         +Boolean displayInYellowPages
         +String[] publicDetails
     }
+```
+
+## Database Structure
+
+```mermaid
+erDiagram
+    MEMBER {
+        int id PK
+        int personal_details_id FK
+        int demographic_information_id FK
+        int contact_information_id FK
+        int church_membership_id FK
+        int volunteer_involvement_id FK
+        int professional_info_id FK
+        int social_presence_id FK
+        int additional_interests_id FK
+        int privacy_consent_id FK
+        int member_meta_data_id FK
+    }
+
+    PERSONAL_DETAILS {
+        int id PK
+        string first_name
+        string last_name
+        string middle_name
+    }
+
+    DEMOGRAPHIC_INFORMATION {
+        int id PK
+        string date_of_birth
+        string gender
+    }
+
+    CONTACT_INFORMATION {
+        int id PK
+        string primary_phone_number
+        string primary_email
+        int address_id FK
+    }
+
+    ADDRESS {
+        int id PK
+        string line1
+        string line2
+        string city
+        string state
+        string zip
+        string country
+    }
+
+    CHURCH_MEMBERSHIP {
+        int id PK
+        boolean is_registered_member
+        string attending_duration
+        string attending_frequency
+        string[] ministries_involved
+        boolean wants_to_volunteer
+        string[] volunteer_roles
+    }
+
+    VOLUNTEER_INVOLVEMENT {
+        int id PK
+        boolean wants_to_volunteer
+        string[] volunteer_roles
+    }
+
+    PROFESSIONAL_INFO {
+        int id PK
+        int employment_status_id FK
+        int employment_details_id FK
+        int employment_history_id FK
+        int[] business_ids FK
+        int[] service_provider_ids FK
+        int[] student_ids FK
+    }
+
+    EMPLOYMENT_STATUS {
+        int id PK
+        string status
+    }
+
+    EMPLOYMENT_DETAILS {
+        int id PK
+        string company_name
+        string job_title
+        string industry
+        int years_of_experience
+    }
+
+    EMPLOYMENT_HISTORY {
+        int id PK
+        string previous_occupation
+        boolean mentorship_interest
+    }
+
+    BUSINESS {
+        int id PK
+        string business_name
+        string business_type
+        boolean has_physical_store
+        int business_address_id FK
+    }
+
+    SERVICE_PROVIDER {
+        int id PK
+        string service_name
+        string[] service_details
+    }
+
+    STUDENT {
+        int id PK
+        string school_name
+        string field_of_study
+        int expected_graduation_year
+    }
+
+    SOCIAL_PRESENCE {
+        int id PK
+        string personal_website
+        string linked_in_profile
+        string facebook_profile
+        string instagram_handle
+        string[] other_social_media_links
+    }
+
+    ADDITIONAL_INTERESTS {
+        int id PK
+        boolean networking_interest
+        string mentorship_preference
+    }
+
+    PRIVACY_CONSENT {
+        int id PK
+        boolean display_in_yellow_pages
+        string[] public_details
+    }
+
+    MEMBER_META_DATA {
+        int id PK
+        date created_at
+        date updated_at
+        boolean is_public
+        boolean is_approved
+    }
+
+    CONTACT_INFORMATION ||--o{ ADDRESS : has
+    BUSINESS ||--o{ ADDRESS : has
+    MEMBER ||--o| PERSONAL_DETAILS : has
+    MEMBER ||--o| DEMOGRAPHIC_INFORMATION : has
+    MEMBER ||--o| CONTACT_INFORMATION : has
+    MEMBER ||--o| CHURCH_MEMBERSHIP : has
+    MEMBER ||--o| VOLUNTEER_INVOLVEMENT : has
+    MEMBER ||--o| PROFESSIONAL_INFO : has
+    MEMBER ||--o| SOCIAL_PRESENCE : has
+    MEMBER ||--o| ADDITIONAL_INTERESTS : has
+    MEMBER ||--o| PRIVACY_CONSENT : has
+    MEMBER ||--o| MEMBER_META_DATA : has
+    PROFESSIONAL_INFO ||--o| EMPLOYMENT_STATUS : has
+    PROFESSIONAL_INFO ||--o| EMPLOYMENT_DETAILS : has
+    PROFESSIONAL_INFO ||--o| EMPLOYMENT_HISTORY : has
+    PROFESSIONAL_INFO ||--o{ BUSINESS : has
+    PROFESSIONAL_INFO ||--o{ SERVICE_PROVIDER : has
+    PROFESSIONAL_INFO ||--o{ STUDENT : has
 ```

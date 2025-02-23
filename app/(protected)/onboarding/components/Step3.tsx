@@ -1,214 +1,553 @@
-// app/(protected)/onboarding/components/Step3.tsx
-import { useOnboarding } from "../hooks/useOnboarding";
+"use client";
 
-const Step3 = () => {
-  const { goNext, goBack, updateField, data } = useOnboarding();
-  const employmentStatus = data.employmentStatus || "";
+import { useEffect } from "react";
+import useOnboarding from "../hooks/useOnboarding";
+
+export default function Step3() {
+  const { currentStep, loading, step3Data, setStep3Data, loadStep, saveStep } = useOnboarding();
+
+  useEffect(() => {
+    if (currentStep === 3) {
+      loadStep(3);
+    }
+  }, [currentStep, loadStep]);
+
+  const employmentStatus = step3Data.professionalInfo.employment_status.status;
+
+  const handleNext = () => {
+    saveStep(3, true);
+  };
+
+  const handleBack = () => {
+    saveStep(3, false);
+  };
 
   return (
-    <div className="w-full max-w-lg p-6 bg-white shadow-lg rounded-lg">
-      <h2 className="text-xl font-semibold mb-4">
-        Step 3: Professional & Business Information
+    <div className="bg-white p-6 rounded shadow w-full max-w-md mx-auto">
+      <h2 className="text-xl font-bold mb-4">
+        Step 3: Professional &amp; Business Info
       </h2>
+      {loading && <p className="text-blue-600 mb-4">Saving/Loading data...</p>}
+      
+      <label className="block mb-1 font-semibold">Employment Status</label>
+      <select
+        className="border w-full p-2 rounded mb-4"
+        value={employmentStatus}
+        onChange={(e) =>
+          setStep3Data({
+            ...step3Data,
+            professionalInfo: {
+              ...step3Data.professionalInfo,
+              employment_status: { status: e.target.value as "Employed" | "BusinessOwner" | "Retired" | "Student" },
+              // Reset conditional fields on status change:
+              employment_details: { company_name: "", job_title: "", industry: "", years_of_experience: 0 },
+              employment_history: { previous_occupation: "", mentorship_interest: false },
+              businesses: [],
+              service_providers: [],
+              students: [],
+            },
+          })
+        }
+      >
+        <option value="">Select</option>
+        <option value="Employed">Employed</option>
+        <option value="BusinessOwner">Business Owner</option>
+        <option value="Retired">Retired/Unemployed</option>
+        <option value="Student">Student</option>
+      </select>
 
-      <div className="mb-4">
-        <label className="block mb-2">Employment Status</label>
-        <select
-          className="w-full p-2 border rounded-md"
-          value={employmentStatus}
-          onChange={(e) => updateField("employmentStatus", e.target.value)}
-        >
-          <option value="">Select</option>
-          <option value="employed">Employed</option>
-          <option value="businessOwner">Business Owner</option>
-          <option value="retired">Retired/Unemployed</option>
-          <option value="student">Student</option>
-        </select>
-      </div>
-
-      {employmentStatus === "employed" && (
-        <div>
-          <div className="mb-4">
-            <label className="block mb-2">Company Name</label>
-            <input
-              type="text"
-              placeholder="Your company name"
-              className="w-full p-2 border rounded-md"
-              value={data.companyName || ""}
-              onChange={(e) => updateField("companyName", e.target.value)}
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block mb-2">Job Title/Role</label>
-            <input
-              type="text"
-              placeholder="Your role"
-              className="w-full p-2 border rounded-md"
-              value={data.jobTitle || ""}
-              onChange={(e) => updateField("jobTitle", e.target.value)}
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block mb-2">Industry</label>
-            <select
-              className="w-full p-2 border rounded-md"
-              value={data.industry || ""}
-              onChange={(e) => updateField("industry", e.target.value)}
-            >
-              <option value="">Select</option>
-              <option value="tech">Tech</option>
-              <option value="finance">Finance</option>
-              <option value="education">Education</option>
-              <option value="healthcare">Healthcare</option>
-            </select>
-          </div>
-          <div className="mb-4">
-            <label className="block mb-2">Years of Experience</label>
-            <input
-              type="number"
-              placeholder="Years of experience"
-              className="w-full p-2 border rounded-md"
-              value={data.yearsExperience || ""}
-              onChange={(e) => updateField("yearsExperience", e.target.value)}
-            />
-          </div>
+      {employmentStatus === "Employed" && (
+        <div className="mb-4 border p-4 rounded bg-gray-50">
+          <label className="block mb-1 font-semibold">Company Name</label>
+          <input
+            className="border w-full mb-2 p-2 rounded"
+            placeholder="Company Name"
+            value={step3Data.professionalInfo.employment_details?.company_name || ""}
+            onChange={(e) =>
+              setStep3Data({
+                ...step3Data,
+                professionalInfo: {
+                  ...step3Data.professionalInfo,
+                  employment_details: {
+                    company_name: e.target.value,
+                    job_title: step3Data.professionalInfo.employment_details?.job_title || "",
+                    industry: step3Data.professionalInfo.employment_details?.industry || "",
+                    years_of_experience: step3Data.professionalInfo.employment_details?.years_of_experience || 0,
+                  },
+                },
+              })
+            }
+          />
+          <label className="block mb-1 font-semibold">Job Title/Role</label>
+          <input
+            className="border w-full mb-2 p-2 rounded"
+            placeholder="Job Title/Role"
+            value={step3Data.professionalInfo.employment_details?.job_title || ""}
+            onChange={(e) =>
+              setStep3Data({
+                ...step3Data,
+                professionalInfo: {
+                  ...step3Data.professionalInfo,
+                  employment_details: {
+                    company_name: step3Data.professionalInfo.employment_details?.company_name || "",
+                    job_title: e.target.value,
+                    industry: step3Data.professionalInfo.employment_details?.industry || "",
+                    years_of_experience: step3Data.professionalInfo.employment_details?.years_of_experience || 0,
+                  },
+                },
+              })
+            }
+          />
+          <label className="block mb-1 font-semibold">Industry</label>
+          <input
+            className="border w-full mb-2 p-2 rounded"
+            placeholder="Industry"
+            value={step3Data.professionalInfo.employment_details?.industry || ""}
+            onChange={(e) =>
+              setStep3Data({
+                ...step3Data,
+                professionalInfo: {
+                  ...step3Data.professionalInfo,
+                  employment_details: {
+                    company_name: step3Data.professionalInfo.employment_details?.company_name || "",
+                    job_title: step3Data.professionalInfo.employment_details?.job_title || "",
+                    industry: e.target.value,
+                    years_of_experience: step3Data.professionalInfo.employment_details?.years_of_experience || 0,
+                  },
+                },
+              })
+            }
+          />
+          <label className="block mb-1 font-semibold">Years of Experience</label>
+          <input
+            type="number"
+            className="border w-full mb-2 p-2 rounded"
+            placeholder="Years of Experience"
+            value={step3Data.professionalInfo.employment_details?.years_of_experience || 0}
+            onChange={(e) =>
+              setStep3Data({
+                ...step3Data,
+                professionalInfo: {
+                  ...step3Data.professionalInfo,
+                  employment_details: {
+                    company_name: step3Data.professionalInfo.employment_details?.company_name || "",
+                    job_title: step3Data.professionalInfo.employment_details?.job_title || "",
+                    industry: step3Data.professionalInfo.employment_details?.industry || "",
+                    years_of_experience: parseInt(e.target.value, 10) || 0,
+                  },
+                },
+              })
+            }
+          />
         </div>
       )}
 
-      {employmentStatus === "businessOwner" && (
-        <div>
-          <div className="mb-4">
-            <label className="block mb-2">Business Name</label>
-            <input
-              type="text"
-              placeholder="Your business name"
-              className="w-full p-2 border rounded-md"
-              value={data.businessName || ""}
-              onChange={(e) => updateField("businessName", e.target.value)}
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block mb-2">Business Type</label>
-            <select
-              className="w-full p-2 border rounded-md"
-              value={data.businessType || ""}
-              onChange={(e) => updateField("businessType", e.target.value)}
-            >
-              <option value="">Select</option>
-              <option value="retail">Retail</option>
-              <option value="service">Service</option>
-              <option value="manufacturing">Manufacturing</option>
-            </select>
-          </div>
-          <div className="mb-4">
-            <label className="block mb-2">
-              Do you have a physical store/location?
-            </label>
-            <select
-              className="w-full p-2 border rounded-md"
-              value={data.hasPhysicalStore || ""}
-              onChange={(e) => updateField("hasPhysicalStore", e.target.value)}
-            >
-              <option value="">Select</option>
-              <option value="yes">Yes</option>
-              <option value="no">No</option>
-            </select>
-          </div>
-          {data.hasPhysicalStore === "yes" && (
-            <div className="mb-4">
-              <label className="block mb-2">Business Address</label>
+      {employmentStatus === "BusinessOwner" && (
+        <div className="mb-4 border p-4 rounded bg-gray-50">
+          <label className="block mb-1 font-semibold">Business Name</label>
+          <input
+            className="border w-full mb-2 p-2 rounded"
+            placeholder="Business Name"
+            value={step3Data.professionalInfo.businesses?.[0]?.business_name || ""}
+            onChange={(e) => {
+              const currentBusiness = step3Data.professionalInfo.businesses?.[0] || {
+                business_name: "",
+                business_type: "",
+                has_physical_store: false,
+                business_address: { line1: "", line2: "", city: "", state: "", zip: "", country: "" },
+              };
+              const updatedBusiness = {
+                ...currentBusiness,
+                business_name: e.target.value,
+              };
+              setStep3Data({
+                ...step3Data,
+                professionalInfo: {
+                  ...step3Data.professionalInfo,
+                  businesses: [updatedBusiness],
+                },
+              });
+            }}
+          />
+          <label className="block mb-1 font-semibold">Business Type</label>
+          <input
+            className="border w-full mb-2 p-2 rounded"
+            placeholder="Business Type"
+            value={step3Data.professionalInfo.businesses?.[0]?.business_type || ""}
+            onChange={(e) => {
+              const currentBusiness = step3Data.professionalInfo.businesses?.[0] || {
+                business_name: "",
+                business_type: "",
+                has_physical_store: false,
+                business_address: { line1: "", line2: "", city: "", state: "", zip: "", country: "" },
+              };
+              const updatedBusiness = {
+                ...currentBusiness,
+                business_type: e.target.value,
+              };
+              setStep3Data({
+                ...step3Data,
+                professionalInfo: {
+                  ...step3Data.professionalInfo,
+                  businesses: [updatedBusiness],
+                },
+              });
+            }}
+          />
+          <label className="block mb-1 font-semibold">Has Physical Store?</label>
+          <select
+            className="border w-full mb-2 p-2 rounded"
+            value={step3Data.professionalInfo.businesses?.[0]?.has_physical_store ? "yes" : "no"}
+            onChange={(e) => {
+              const currentBusiness = step3Data.professionalInfo.businesses?.[0] || {
+                business_name: "",
+                business_type: "",
+                has_physical_store: false,
+                business_address: { line1: "", line2: "", city: "", state: "", zip: "", country: "" },
+              };
+              const updatedBusiness = {
+                ...currentBusiness,
+                has_physical_store: e.target.value === "yes",
+              };
+              setStep3Data({
+                ...step3Data,
+                professionalInfo: {
+                  ...step3Data.professionalInfo,
+                  businesses: [updatedBusiness],
+                },
+              });
+            }}
+          />
+          {step3Data.professionalInfo.businesses?.[0]?.has_physical_store === true && (
+            <div className="mt-2 border p-2 rounded bg-white">
+              <label className="block mb-1 font-semibold">Store Address Line 1</label>
               <input
-                type="text"
-                placeholder="Your business address"
-                className="w-full p-2 border rounded-md"
-                value={data.businessAddress || ""}
-                onChange={(e) => updateField("businessAddress", e.target.value)}
+                className="border w-full mb-2 p-2 rounded"
+                placeholder="Address Line 1"
+                value={step3Data.professionalInfo.businesses?.[0]?.business_address?.line1 || ""}
+                onChange={(e) => {
+                  const currentBusiness = step3Data.professionalInfo.businesses?.[0] || {
+                    business_name: "",
+                    business_type: "",
+                    has_physical_store: false,
+                    business_address: { line1: "", line2: "", city: "", state: "", zip: "", country: "" },
+                  };
+                  const updatedBusiness = {
+                    ...currentBusiness,
+                    business_address: {
+                      ...{ line1: "", line2: "", city: "", state: "", zip: "", country: "" },
+                      ...currentBusiness.business_address,
+                      line1: e.target.value,
+                    },
+                  };
+                  setStep3Data({
+                    ...step3Data,
+                    professionalInfo: {
+                      ...step3Data.professionalInfo,
+                      businesses: [updatedBusiness],
+                    },
+                  });
+                }}
               />
+              <label className="block mb-1 font-semibold">Store Address Line 2</label>
+              <input
+                className="border w-full mb-2 p-2 rounded"
+                placeholder="Address Line 2"
+                value={step3Data.professionalInfo.businesses?.[0]?.business_address?.line2 || ""}
+                onChange={(e) => {
+                  const currentBusiness = step3Data.professionalInfo.businesses?.[0] || {
+                    business_name: "",
+                    business_type: "",
+                    has_physical_store: false,
+                    business_address: { line1: "", line2: "", city: "", state: "", zip: "", country: "" },
+                  };
+                  const updatedBusiness = {
+                    ...currentBusiness,
+                    business_address: {
+                      ...{ line1: "", line2: "", city: "", state: "", zip: "", country: "" },
+                      ...currentBusiness.business_address,
+                      line2: e.target.value,
+                    },
+                  };
+                  setStep3Data({
+                    ...step3Data,
+                    professionalInfo: {
+                      ...step3Data.professionalInfo,
+                      businesses: [updatedBusiness],
+                    },
+                  });
+                }}
+              />
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="block mb-1 font-semibold">City</label>
+                  <input
+                    className="border w-full mb-2 p-2 rounded"
+                    placeholder="City"
+                    value={step3Data.professionalInfo.businesses?.[0]?.business_address?.city || ""}
+                    onChange={(e) => {
+                      const currentBusiness = step3Data.professionalInfo.businesses?.[0] || {
+                        business_name: "",
+                        business_type: "",
+                        has_physical_store: false,
+                        business_address: { line1: "", line2: "", city: "", state: "", zip: "", country: "" },
+                      };
+                      const updatedBusiness = {
+                        ...currentBusiness,
+                        business_address: {
+                          ...{ line1: "", line2: "", city: "", state: "", zip: "", country: "" },
+                          ...currentBusiness.business_address,
+                          city: e.target.value,
+                        },
+                      };
+                      setStep3Data({
+                        ...step3Data,
+                        professionalInfo: {
+                          ...step3Data.professionalInfo,
+                          businesses: [updatedBusiness],
+                        },
+                      });
+                    }}
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block mb-1 font-semibold">State</label>
+                  <input
+                    className="border w-full mb-2 p-2 rounded"
+                    placeholder="State"
+                    value={step3Data.professionalInfo.businesses?.[0]?.business_address?.state || ""}
+                    onChange={(e) => {
+                      const currentBusiness = step3Data.professionalInfo.businesses?.[0] || {
+                        business_name: "",
+                        business_type: "",
+                        has_physical_store: false,
+                        business_address: { line1: "", line2: "", city: "", state: "", zip: "", country: "" },
+                      };
+                      const updatedBusiness = {
+                        ...currentBusiness,
+                        business_address: {
+                          ...{ line1: "", line2: "", city: "", state: "", zip: "", country: "" },
+                          ...currentBusiness.business_address,
+                          state: e.target.value,
+                        },
+                      };
+                      setStep3Data({
+                        ...step3Data,
+                        professionalInfo: {
+                          ...step3Data.professionalInfo,
+                          businesses: [updatedBusiness],
+                        },
+                      });
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="block mb-1 font-semibold">ZIP</label>
+                  <input
+                    className="border w-full mb-2 p-2 rounded"
+                    placeholder="ZIP"
+                    value={step3Data.professionalInfo.businesses?.[0]?.business_address?.zip || ""}
+                    onChange={(e) => {
+                      const currentBusiness = step3Data.professionalInfo.businesses?.[0] || {
+                        business_name: "",
+                        business_type: "",
+                        has_physical_store: false,
+                        business_address: { line1: "", line2: "", city: "", state: "", zip: "", country: "" },
+                      };
+                      const updatedBusiness = {
+                        ...currentBusiness,
+                        business_address: {
+                          ...{ line1: "", line2: "", city: "", state: "", zip: "", country: "" },
+                          ...currentBusiness.business_address,
+                          zip: e.target.value,
+                        },
+                      };
+                      setStep3Data({
+                        ...step3Data,
+                        professionalInfo: {
+                          ...step3Data.professionalInfo,
+                          businesses: [updatedBusiness],
+                        },
+                      });
+                    }}
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block mb-1 font-semibold">Country</label>
+                  <input
+                    className="border w-full mb-2 p-2 rounded"
+                    placeholder="Country"
+                    value={step3Data.professionalInfo.businesses?.[0]?.business_address?.country || ""}
+                    onChange={(e) => {
+                      const currentBusiness = step3Data.professionalInfo.businesses?.[0] || {
+                        business_name: "",
+                        business_type: "",
+                        has_physical_store: false,
+                        business_address: { line1: "", line2: "", city: "", state: "", zip: "", country: "" },
+                      };
+                      const updatedBusiness = {
+                        ...currentBusiness,
+                        business_address: {
+                          ...{ line1: "", line2: "", city: "", state: "", zip: "", country: "" },
+                          ...currentBusiness.business_address,
+                          country: e.target.value,
+                        },
+                      };
+                      setStep3Data({
+                        ...step3Data,
+                        professionalInfo: {
+                          ...step3Data.professionalInfo,
+                          businesses: [updatedBusiness],
+                        },
+                      });
+                    }}
+                  />
+                </div>
+              </div>
             </div>
           )}
         </div>
       )}
 
-      {employmentStatus === "retired" && (
-        <div>
-          <div className="mb-4">
-            <label className="block mb-2">
-              Previous Occupation (if applicable)
-            </label>
-            <input
-              type="text"
-              placeholder="Your previous occupation"
-              className="w-full p-2 border rounded-md"
-              value={data.previousOccupation || ""}
-              onChange={(e) => updateField("previousOccupation", e.target.value)}
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block mb-2">Interested in Mentorship?</label>
-            <select
-              className="w-full p-2 border rounded-md"
-              value={data.mentorshipInterest || ""}
-              onChange={(e) => updateField("mentorshipInterest", e.target.value)}
-            >
-              <option value="">Select</option>
-              <option value="yes">Yes</option>
-              <option value="no">No</option>
-            </select>
-          </div>
+      {employmentStatus === "Retired" && (
+        <div className="mb-4 border p-4 rounded bg-gray-50">
+          <label className="block mb-1 font-semibold">Previous Occupation</label>
+          <input
+            className="border w-full mb-2 p-2 rounded"
+            placeholder="Previous Occupation"
+            value={step3Data.professionalInfo.employment_history?.previous_occupation || ""}
+            onChange={(e) =>
+              setStep3Data({
+                ...step3Data,
+                professionalInfo: {
+                  ...step3Data.professionalInfo,
+                  employment_history: {
+                    previous_occupation: e.target.value,
+                    mentorship_interest: step3Data.professionalInfo.employment_history?.mentorship_interest || false,
+                  },
+                },
+              })
+            }
+          />
+          <label className="block mb-1 font-semibold">Interested in Mentorship?</label>
+          <select
+            className="border w-full mb-2 p-2 rounded"
+            value={step3Data.professionalInfo.employment_history?.mentorship_interest ? "yes" : "no"}
+            onChange={(e) =>
+              setStep3Data({
+                ...step3Data,
+                professionalInfo: {
+                  ...step3Data.professionalInfo,
+                  employment_history: {
+                    previous_occupation: step3Data.professionalInfo.employment_history?.previous_occupation || "",
+                    mentorship_interest: e.target.value === "yes",
+                  },
+                },
+              })
+            }
+          >
+            <option value="no">No</option>
+            <option value="yes">Yes</option>
+          </select>
         </div>
       )}
 
-      {employmentStatus === "student" && (
-        <div>
-          <div className="mb-4">
-            <label className="block mb-2">School/University Name</label>
-            <input
-              type="text"
-              placeholder="Your institution"
-              className="w-full p-2 border rounded-md"
-              value={data.schoolName || ""}
-              onChange={(e) => updateField("schoolName", e.target.value)}
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block mb-2">Field of Study</label>
-            <input
-              type="text"
-              placeholder="Your field of study"
-              className="w-full p-2 border rounded-md"
-              value={data.fieldOfStudy || ""}
-              onChange={(e) => updateField("fieldOfStudy", e.target.value)}
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block mb-2">Expected Graduation Year</label>
-            <input
-              type="number"
-              placeholder="e.g. 2026"
-              className="w-full p-2 border rounded-md"
-              value={data.expectedGraduationYear || ""}
-              onChange={(e) => updateField("expectedGraduationYear", e.target.value)}
-            />
-          </div>
+      {employmentStatus === "Student" && (
+        <div className="mb-4 border p-4 rounded bg-gray-50">
+          <label className="block mb-1 font-semibold">School/University Name</label>
+          <input
+            className="border w-full mb-2 p-2 rounded"
+            placeholder="School/University"
+            value={step3Data.professionalInfo.students?.[0]?.school_name || ""}
+            onChange={(e) => {
+              const currentStudent = step3Data.professionalInfo.students?.[0] || {
+                school_name: "",
+                field_of_study: "",
+                expected_graduation_year: 0,
+              };
+              const updatedStudent = {
+                ...currentStudent,
+                school_name: e.target.value,
+              };
+              setStep3Data({
+                ...step3Data,
+                professionalInfo: {
+                  ...step3Data.professionalInfo,
+                  students: [updatedStudent],
+                },
+              });
+            }}
+          />
+          <label className="block mb-1 font-semibold">Field of Study</label>
+          <input
+            className="border w-full mb-2 p-2 rounded"
+            placeholder="Field of Study"
+            value={step3Data.professionalInfo.students?.[0]?.field_of_study || ""}
+            onChange={(e) => {
+              const currentStudent = step3Data.professionalInfo.students?.[0] || {
+                school_name: "",
+                field_of_study: "",
+                expected_graduation_year: 0,
+              };
+              const updatedStudent = {
+                ...currentStudent,
+                field_of_study: e.target.value,
+              };
+              setStep3Data({
+                ...step3Data,
+                professionalInfo: {
+                  ...step3Data.professionalInfo,
+                  students: [updatedStudent],
+                },
+              });
+            }}
+          />
+          <label className="block mb-1 font-semibold">Expected Graduation Year</label>
+          <input
+            type="number"
+            className="border w-full mb-2 p-2 rounded"
+            placeholder="Graduation Year"
+            value={step3Data.professionalInfo.students?.[0]?.expected_graduation_year || 0}
+            onChange={(e) => {
+              const currentStudent = step3Data.professionalInfo.students?.[0] || {
+                school_name: "",
+                field_of_study: "",
+                expected_graduation_year: 0,
+              };
+              const updatedStudent = {
+                ...currentStudent,
+                expected_graduation_year: parseInt(e.target.value, 10) || 0,
+              };
+              setStep3Data({
+                ...step3Data,
+                professionalInfo: {
+                  ...step3Data.professionalInfo,
+                  students: [updatedStudent],
+                },
+              });
+            }}
+          />
         </div>
       )}
 
-      <div className="flex justify-between mt-6">
+      <div className="flex justify-between mt-4">
         <button
-          className="bg-gray-300 px-4 py-2 rounded-md"
-          onClick={goBack}
+          onClick={handleBack}
+          className="bg-gray-300 text-black px-4 py-2 rounded"
+          disabled={loading}
         >
           Previous
         </button>
         <button
-          className="bg-blue-500 text-white px-4 py-2 rounded-md"
-          onClick={goNext}
+          onClick={handleNext}
+          className="bg-blue-500 text-white px-4 py-2 rounded"
+          disabled={loading}
         >
           Next
         </button>
       </div>
     </div>
   );
-};
-
-export default Step3;
+}
