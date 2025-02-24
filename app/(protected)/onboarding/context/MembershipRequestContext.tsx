@@ -1,12 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// app/(protected)/onboarding/context/MembershipRequestContext.tsx
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { selectUserUid } from "@/store/slices/userSlice";
 
-// Define the shape of your membership data
+// Define the shape of your membership data with the new privacy structure and audit fields.
 export interface MembershipRequestData {
   member_login: {
     uid: string;
@@ -76,18 +75,64 @@ export interface MembershipRequestData {
   };
   privacy_consent: {
     display_in_yellow_pages: boolean;
-    public_details: string[];
+    public_visibility: {
+      personal_details?: {
+        first_name?: boolean;
+        last_name?: boolean;
+        middle_name?: boolean;
+      };
+      demographic_information?: {
+        date_of_birth?: boolean;
+        gender?: boolean;
+      };
+      contact_information?: {
+        primary_phone_number?: boolean;
+        primary_email?: boolean;
+        address?: {
+          line1?: boolean;
+          line2?: boolean;
+          city?: boolean;
+          state?: boolean;
+          zip?: boolean;
+          country?: boolean;
+        };
+      };
+      professional_info?: {
+        employment_status?: boolean;
+        employment_details?: {
+          company_name?: boolean;
+          job_title?: boolean;
+          industry?: boolean;
+          years_of_experience?: boolean;
+        };
+        employment_history?: {
+          previous_occupation?: boolean;
+          mentorship_interest?: boolean;
+        };
+        businesses?: boolean;
+        service_providers?: boolean;
+        students?: boolean;
+      };
+      social_presence?: {
+        personal_website?: boolean;
+        linked_in_profile?: boolean;
+        facebook_profile?: boolean;
+        instagram_handle?: boolean;
+        other_social_media_links?: boolean;
+      };
+    };
   };
   isApproved: boolean;
   createdAt: string;
   updatedAt: string;
+  // Audit & GDPR fields:
+  softDeleted?: boolean;
+  lastModifiedBy?: string;
 }
 
-// Define a default membership request with an empty uid; we'll update it from the Redux store.
+// Default membership request with empty values (note the empty object for public_visibility)
 export const defaultMembershipRequest: MembershipRequestData = {
-  member_login: {
-    uid: ""
-  },
+  member_login: { uid: "" },
   personal_details: { first_name: "", last_name: "", middle_name: "" },
   demographic_information: { date_of_birth: "", gender: "" },
   contact_information: {
@@ -110,7 +155,7 @@ export const defaultMembershipRequest: MembershipRequestData = {
     instagram_handle: "",
     other_social_media_links: [],
   },
-  privacy_consent: { display_in_yellow_pages: false, public_details: [] },
+  privacy_consent: { display_in_yellow_pages: false, public_visibility: {} },
   isApproved: false,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),

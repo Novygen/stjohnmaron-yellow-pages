@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// app/api/membership-request/route.ts
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongoose";
 import MembershipRequest from "@/models/MembershipRequest";
 import { z } from "zod";
 
-// Zod schema to validate the incoming membership request
+// Zod schema to validate the incoming membership request with the updated privacy_consent structure
 const membershipRequestSchema = z.object({
   member_login: z.object({
     uid: z.string(),
@@ -87,7 +86,52 @@ const membershipRequestSchema = z.object({
   }),
   privacy_consent: z.object({
     display_in_yellow_pages: z.boolean(),
-    public_details: z.array(z.string()),
+    public_visibility: z.object({
+      personal_details: z.object({
+        first_name: z.boolean().optional(),
+        last_name: z.boolean().optional(),
+        middle_name: z.boolean().optional(),
+      }).optional(),
+      demographic_information: z.object({
+        date_of_birth: z.boolean().optional(),
+        gender: z.boolean().optional(),
+      }).optional(),
+      contact_information: z.object({
+        primary_phone_number: z.boolean().optional(),
+        primary_email: z.boolean().optional(),
+        address: z.object({
+          line1: z.boolean().optional(),
+          line2: z.boolean().optional(),
+          city: z.boolean().optional(),
+          state: z.boolean().optional(),
+          zip: z.boolean().optional(),
+          country: z.boolean().optional(),
+        }).optional()
+      }).optional(),
+      professional_info: z.object({
+        employment_status: z.boolean().optional(),
+        employment_details: z.object({
+          company_name: z.boolean().optional(),
+          job_title: z.boolean().optional(),
+          industry: z.boolean().optional(),
+          years_of_experience: z.boolean().optional(),
+        }).optional(),
+        employment_history: z.object({
+          previous_occupation: z.boolean().optional(),
+          mentorship_interest: z.boolean().optional(),
+        }).optional(),
+        businesses: z.boolean().optional(),
+        service_providers: z.boolean().optional(),
+        students: z.boolean().optional(),
+      }).optional(),
+      social_presence: z.object({
+        personal_website: z.boolean().optional(),
+        linked_in_profile: z.boolean().optional(),
+        facebook_profile: z.boolean().optional(),
+        instagram_handle: z.boolean().optional(),
+        other_social_media_links: z.boolean().optional(),
+      }).optional(),
+    }),
   }),
 });
 

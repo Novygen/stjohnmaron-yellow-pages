@@ -82,9 +82,56 @@ export interface ISocialPresence {
   other_social_media_links: string[];
 }
 
+// Instead of a simple array, we use a structured object to specify
+// for each category (and nested fields) whether the data is public.
 export interface IPrivacyConsent {
   display_in_yellow_pages: boolean;
-  public_details: string[];
+  public_visibility: {
+    personal_details?: {
+      first_name?: boolean;
+      last_name?: boolean;
+      middle_name?: boolean;
+    };
+    demographic_information?: {
+      date_of_birth?: boolean;
+      gender?: boolean;
+    };
+    contact_information?: {
+      primary_phone_number?: boolean;
+      primary_email?: boolean;
+      address?: {
+        line1?: boolean;
+        line2?: boolean;
+        city?: boolean;
+        state?: boolean;
+        zip?: boolean;
+        country?: boolean;
+      };
+    };
+    professional_info?: {
+      employment_status?: boolean;
+      employment_details?: {
+        company_name?: boolean;
+        job_title?: boolean;
+        industry?: boolean;
+        years_of_experience?: boolean;
+      };
+      employment_history?: {
+        previous_occupation?: boolean;
+        mentorship_interest?: boolean;
+      };
+      businesses?: boolean;
+      service_providers?: boolean;
+      students?: boolean;
+    };
+    social_presence?: {
+      personal_website?: boolean;
+      linked_in_profile?: boolean;
+      facebook_profile?: boolean;
+      instagram_handle?: boolean;
+      other_social_media_links?: boolean;
+    };
+  };
 }
 
 export interface IMembershipRequest extends Document {
@@ -96,6 +143,9 @@ export interface IMembershipRequest extends Document {
   social_presence: ISocialPresence;
   privacy_consent: IPrivacyConsent;
   isApproved: boolean;
+  // Audit & GDPR fields:
+  softDeleted?: boolean;
+  lastModifiedBy?: string;
 }
 
 const MembershipRequestSchema = new Schema<IMembershipRequest>(
@@ -108,6 +158,8 @@ const MembershipRequestSchema = new Schema<IMembershipRequest>(
     social_presence: { type: Object, required: true },
     privacy_consent: { type: Object, required: true },
     isApproved: { type: Boolean, default: false },
+    softDeleted: { type: Boolean, default: false },
+    lastModifiedBy: { type: String }
   },
   { timestamps: true }
 );
