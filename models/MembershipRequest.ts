@@ -1,19 +1,16 @@
 // models/MembershipRequest.ts
 import mongoose, { Document, Schema } from "mongoose";
 
+// Login information
 export interface IMemberLogin {
   uid: string;
 }
 
 export interface IPersonalDetails {
-  first_name: string;
-  last_name: string;
-  middle_name?: string;
-}
-
-export interface IDemographicInformation {
-  date_of_birth: string;
-  gender?: string;
+  firstName: string;
+  lastName: string;
+  middleName?: string;
+  ageRange: string;
 }
 
 export interface IAddress {
@@ -26,8 +23,8 @@ export interface IAddress {
 }
 
 export interface IContactInformation {
-  primary_phone_number: string;
-  primary_email: string;
+  primaryPhoneNumber: string;
+  primaryEmail: string;
   address: IAddress;
 }
 
@@ -36,127 +33,67 @@ export interface IEmploymentStatus {
 }
 
 export interface IEmploymentDetails {
-  company_name: string;
-  job_title: string;
-  industry: string;
-  years_of_experience: number;
-}
-
-export interface IEmploymentHistory {
-  previous_occupation: string;
-  mentorship_interest: boolean;
+  companyName: string;
+  jobTitle: string;
+  specialization: string;
+  startDate: string; // Format: "MM/YYYY"
 }
 
 export interface IBusiness {
-  business_name: string;
-  business_type: string;
-  has_physical_store: boolean;
-  business_address: IAddress;
-}
-
-export interface IServiceProvider {
-  service_name: string;
-  service_details: string[];
+  businessName: string;
+  additionalInformation: string;
+  website: string;
+  phoneNumber: string;
+  industry: string;
 }
 
 export interface IStudent {
-  school_name: string;
-  field_of_study: string;
-  expected_graduation_year: number;
+  schoolName: string;
+  fieldOfStudy: string;
+  expectedGraduationYear: number;
 }
 
 export interface IProfessionalInfo {
-  employment_status: IEmploymentStatus;
-  employment_details?: IEmploymentDetails;
-  employment_history?: IEmploymentHistory;
-  businesses?: IBusiness[];
-  service_providers?: IServiceProvider[];
-  students?: IStudent[];
+  employmentStatus: IEmploymentStatus;
+  employmentDetails?: IEmploymentDetails;
+  ownsBusinessOrService?: boolean;
+  business?: IBusiness;
+  student?: IStudent;
 }
 
 export interface ISocialPresence {
-  personal_website?: string;
-  linked_in_profile?: string;
-  facebook_profile?: string;
-  instagram_handle?: string;
-  other_social_media_links: string[];
+  personalWebsite?: string;
+  linkedInProfile?: string;
+  facebookProfile?: string;
+  instagramHandle?: string;
 }
 
-// Instead of a simple array, we use a structured object to specify
-// for each category (and nested fields) whether the data is public.
 export interface IPrivacyConsent {
-  display_in_yellow_pages: boolean;
-  public_visibility: {
-    personal_details?: {
-      first_name?: boolean;
-      last_name?: boolean;
-      middle_name?: boolean;
-    };
-    demographic_information?: {
-      date_of_birth?: boolean;
-      gender?: boolean;
-    };
-    contact_information?: {
-      primary_phone_number?: boolean;
-      primary_email?: boolean;
-      address?: {
-        line1?: boolean;
-        line2?: boolean;
-        city?: boolean;
-        state?: boolean;
-        zip?: boolean;
-        country?: boolean;
-      };
-    };
-    professional_info?: {
-      employment_status?: boolean;
-      employment_details?: {
-        company_name?: boolean;
-        job_title?: boolean;
-        industry?: boolean;
-        years_of_experience?: boolean;
-      };
-      employment_history?: {
-        previous_occupation?: boolean;
-        mentorship_interest?: boolean;
-      };
-      businesses?: boolean;
-      service_providers?: boolean;
-      students?: boolean;
-    };
-    social_presence?: {
-      personal_website?: boolean;
-      linked_in_profile?: boolean;
-      facebook_profile?: boolean;
-      instagram_handle?: boolean;
-      other_social_media_links?: boolean;
-    };
-  };
+  internalConsent: boolean;
+  displayInYellowPages: boolean;
+  displayPhonePublicly: boolean;
 }
 
 export interface IMembershipRequest extends Document {
-  member_login: IMemberLogin;
-  personal_details: IPersonalDetails;
-  demographic_information: IDemographicInformation;
-  contact_information: IContactInformation;
-  professional_info: IProfessionalInfo;
-  social_presence: ISocialPresence;
-  privacy_consent: IPrivacyConsent;
+  memberLogin: IMemberLogin;
+  personalDetails: IPersonalDetails;
+  contactInformation: IContactInformation;
+  professionalInfo: IProfessionalInfo;
+  socialPresence: ISocialPresence;
+  privacyConsent: IPrivacyConsent;
   isApproved: boolean;
-  // Audit & GDPR fields:
   softDeleted?: boolean;
   lastModifiedBy?: string;
 }
 
 const MembershipRequestSchema = new Schema<IMembershipRequest>(
   {
-    member_login: { type: Object, required: true },
-    personal_details: { type: Object, required: true },
-    demographic_information: { type: Object, required: true },
-    contact_information: { type: Object, required: true },
-    professional_info: { type: Object, required: true },
-    social_presence: { type: Object, required: true },
-    privacy_consent: { type: Object, required: true },
+    memberLogin: { type: Object, required: true },
+    personalDetails: { type: Object, required: true },
+    contactInformation: { type: Object, required: true },
+    professionalInfo: { type: Object, required: true },
+    socialPresence: { type: Object, required: true },
+    privacyConsent: { type: Object, required: true },
     isApproved: { type: Boolean, default: false },
     softDeleted: { type: Boolean, default: false },
     lastModifiedBy: { type: String }

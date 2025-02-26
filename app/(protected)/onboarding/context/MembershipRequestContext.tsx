@@ -5,23 +5,19 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import { useSelector } from "react-redux";
 import { selectUserUid } from "@/store/slices/userSlice";
 
-// Define the shape of your membership data with the new privacy structure and audit fields.
 export interface MembershipRequestData {
-  member_login: {
+  memberLogin: {
     uid: string;
   };
-  personal_details: {
-    first_name: string;
-    last_name: string;
-    middle_name: string;
+  personalDetails: {
+    firstName: string;
+    lastName: string;
+    middleName: string;
+    ageRange: string;
   };
-  demographic_information: {
-    date_of_birth: string;
-    gender: string;
-  };
-  contact_information: {
-    primary_phone_number: string;
-    primary_email: string;
+  contactInformation: {
+    primaryPhoneNumber: string;
+    primaryEmail: string;
     address: {
       line1: string;
       line2: string;
@@ -31,131 +27,64 @@ export interface MembershipRequestData {
       country: string;
     };
   };
-  professional_info: {
-    employment_status: { status: string };
-    employment_details: {
-      company_name: string;
-      job_title: string;
+  professionalInfo: {
+    employmentStatus: { status: string };
+    employmentDetails?: {
+      companyName: string;
+      jobTitle: string;
+      specialization: string;
+      startDate: string;
+    };
+    ownsBusinessOrService?: boolean;
+    business?: {
+      businessName: string;
+      additionalInformation: string;
+      website: string;
+      phoneNumber: string;
       industry: string;
-      years_of_experience: number;
     };
-    employment_history: {
-      previous_occupation: string;
-      mentorship_interest: boolean;
+    student?: {
+      schoolName: string;
+      fieldOfStudy: string;
+      expectedGraduationYear: number;
     };
-    businesses: {
-      business_name: string;
-      business_type: string;
-      has_physical_store: boolean;
-      business_address: {
-        line1: string;
-        line2: string;
-        city: string;
-        state: string;
-        zip: string;
-        country: string;
-      };
-    }[];
-    service_providers: {
-      service_name: string;
-      service_details: string[];
-    }[];
-    students: {
-      school_name: string;
-      field_of_study: string;
-      expected_graduation_year: number;
-    }[];
   };
-  social_presence: {
-    personal_website: string;
-    linked_in_profile: string;
-    facebook_profile: string;
-    instagram_handle: string;
-    other_social_media_links: string[];
+  socialPresence: {
+    personalWebsite?: string;
+    linkedInProfile?: string;
+    facebookProfile?: string;
+    instagramHandle?: string;
   };
-  privacy_consent: {
-    display_in_yellow_pages: boolean;
-    public_visibility: {
-      personal_details?: {
-        first_name?: boolean;
-        last_name?: boolean;
-        middle_name?: boolean;
-      };
-      demographic_information?: {
-        date_of_birth?: boolean;
-        gender?: boolean;
-      };
-      contact_information?: {
-        primary_phone_number?: boolean;
-        primary_email?: boolean;
-        address?: {
-          line1?: boolean;
-          line2?: boolean;
-          city?: boolean;
-          state?: boolean;
-          zip?: boolean;
-          country?: boolean;
-        };
-      };
-      professional_info?: {
-        employment_status?: boolean;
-        employment_details?: {
-          company_name?: boolean;
-          job_title?: boolean;
-          industry?: boolean;
-          years_of_experience?: boolean;
-        };
-        employment_history?: {
-          previous_occupation?: boolean;
-          mentorship_interest?: boolean;
-        };
-        businesses?: boolean;
-        service_providers?: boolean;
-        students?: boolean;
-      };
-      social_presence?: {
-        personal_website?: boolean;
-        linked_in_profile?: boolean;
-        facebook_profile?: boolean;
-        instagram_handle?: boolean;
-        other_social_media_links?: boolean;
-      };
-    };
+  privacyConsent: {
+    internalConsent: boolean;
+    displayInYellowPages: boolean;
+    displayPhonePublicly: boolean;
   };
   isApproved: boolean;
   createdAt: string;
   updatedAt: string;
-  // Audit & GDPR fields:
   softDeleted?: boolean;
   lastModifiedBy?: string;
 }
 
-// Default membership request with empty values (note the empty object for public_visibility)
 export const defaultMembershipRequest: MembershipRequestData = {
-  member_login: { uid: "" },
-  personal_details: { first_name: "", last_name: "", middle_name: "" },
-  demographic_information: { date_of_birth: "", gender: "" },
-  contact_information: {
-    primary_phone_number: "",
-    primary_email: "",
+  memberLogin: { uid: "" },
+  personalDetails: { firstName: "", lastName: "", middleName: "", ageRange: "" },
+  contactInformation: {
+    primaryPhoneNumber: "",
+    primaryEmail: "",
     address: { line1: "", line2: "", city: "", state: "", zip: "", country: "" },
   },
-  professional_info: {
-    employment_status: { status: "" },
-    employment_details: { company_name: "", job_title: "", industry: "", years_of_experience: 0 },
-    employment_history: { previous_occupation: "", mentorship_interest: false },
-    businesses: [],
-    service_providers: [],
-    students: [],
+  professionalInfo: {
+    employmentStatus: { status: "" },
   },
-  social_presence: {
-    personal_website: "",
-    linked_in_profile: "",
-    facebook_profile: "",
-    instagram_handle: "",
-    other_social_media_links: [],
+  socialPresence: {
+    personalWebsite: "",
+    linkedInProfile: "",
+    facebookProfile: "",
+    instagramHandle: "",
   },
-  privacy_consent: { display_in_yellow_pages: false, public_visibility: {} },
+  privacyConsent: { internalConsent: false, displayInYellowPages: false, displayPhonePublicly: false },
   isApproved: false,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
@@ -164,12 +93,11 @@ export const defaultMembershipRequest: MembershipRequestData = {
 interface MembershipRequestContextType {
   membershipData: MembershipRequestData;
   setMembershipData: React.Dispatch<React.SetStateAction<MembershipRequestData>>;
-  updatePersonalDetails: (data: Partial<MembershipRequestData["personal_details"]>) => void;
-  updateDemographicInformation: (data: Partial<MembershipRequestData["demographic_information"]>) => void;
-  updateContactInformation: (data: Partial<MembershipRequestData["contact_information"]>) => void;
-  updateProfessionalInfo: (data: Partial<MembershipRequestData["professional_info"]>) => void;
-  updateSocialPresence: (data: Partial<MembershipRequestData["social_presence"]>) => void;
-  updatePrivacyConsent: (data: Partial<MembershipRequestData["privacy_consent"]>) => void;
+  updatePersonalDetails: (data: Partial<MembershipRequestData["personalDetails"]>) => void;
+  updateContactInformation: (data: Partial<MembershipRequestData["contactInformation"]>) => void;
+  updateProfessionalInfo: (data: Partial<MembershipRequestData["professionalInfo"]>) => void;
+  updateSocialPresence: (data: Partial<MembershipRequestData["socialPresence"]>) => void;
+  updatePrivacyConsent: (data: Partial<MembershipRequestData["privacyConsent"]>) => void;
   submitMembershipRequest: () => Promise<any>;
   loading: boolean;
 }
@@ -177,64 +105,54 @@ interface MembershipRequestContextType {
 const MembershipRequestContext = createContext<MembershipRequestContextType | undefined>(undefined);
 
 export const MembershipRequestProvider = ({ children }: { children: ReactNode }) => {
-  // Get the uid from Redux via useSelector.
   const userUid = useSelector(selectUserUid) ?? "";
   
-  // Initialize the membership data using the uid from Redux.
   const [membershipData, setMembershipData] = useState<MembershipRequestData>(() => ({
     ...defaultMembershipRequest,
-    member_login: { uid: userUid },
+    memberLogin: { uid: userUid },
   }));
   
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Ensure membershipData.member_login.uid updates if userUid changes.
   useEffect(() => {
     setMembershipData(prev => ({
       ...prev,
-      member_login: { uid: userUid }
+      memberLogin: { uid: userUid }
     }));
   }, [userUid]);
 
-  const updatePersonalDetails = (data: Partial<MembershipRequestData["personal_details"]>) => {
+  const updatePersonalDetails = (data: Partial<MembershipRequestData["personalDetails"]>) => {
     setMembershipData(prev => ({
       ...prev,
-      personal_details: { ...prev.personal_details, ...data },
+      personalDetails: { ...prev.personalDetails, ...data },
     }));
   };
 
-  const updateDemographicInformation = (data: Partial<MembershipRequestData["demographic_information"]>) => {
+  const updateContactInformation = (data: Partial<MembershipRequestData["contactInformation"]>) => {
     setMembershipData(prev => ({
       ...prev,
-      demographic_information: { ...prev.demographic_information, ...data },
+      contactInformation: { ...prev.contactInformation, ...data },
     }));
   };
 
-  const updateContactInformation = (data: Partial<MembershipRequestData["contact_information"]>) => {
+  const updateProfessionalInfo = (data: Partial<MembershipRequestData["professionalInfo"]>) => {
     setMembershipData(prev => ({
       ...prev,
-      contact_information: { ...prev.contact_information, ...data },
+      professionalInfo: { ...prev.professionalInfo, ...data },
     }));
   };
 
-  const updateProfessionalInfo = (data: Partial<MembershipRequestData["professional_info"]>) => {
+  const updateSocialPresence = (data: Partial<MembershipRequestData["socialPresence"]>) => {
     setMembershipData(prev => ({
       ...prev,
-      professional_info: { ...prev.professional_info, ...data },
+      socialPresence: { ...prev.socialPresence, ...data },
     }));
   };
 
-  const updateSocialPresence = (data: Partial<MembershipRequestData["social_presence"]>) => {
+  const updatePrivacyConsent = (data: Partial<MembershipRequestData["privacyConsent"]>) => {
     setMembershipData(prev => ({
       ...prev,
-      social_presence: { ...prev.social_presence, ...data },
-    }));
-  };
-
-  const updatePrivacyConsent = (data: Partial<MembershipRequestData["privacy_consent"]>) => {
-    setMembershipData(prev => ({
-      ...prev,
-      privacy_consent: { ...prev.privacy_consent, ...data },
+      privacyConsent: { ...prev.privacyConsent, ...data },
     }));
   };
 
@@ -248,7 +166,13 @@ export const MembershipRequestProvider = ({ children }: { children: ReactNode })
       });
       const result = await res.json();
       if (!res.ok) {
-        throw new Error(result.error || "Submission failed");
+        let errorMessage = "Submission failed";
+        if (result.error) {
+          errorMessage = typeof result.error === "object" 
+            ? JSON.stringify(result.error) 
+            : result.error;
+        }
+        throw new Error(errorMessage);
       }
       return result;
     } catch (err) {
@@ -258,6 +182,7 @@ export const MembershipRequestProvider = ({ children }: { children: ReactNode })
       setLoading(false);
     }
   };
+  
 
   return (
     <MembershipRequestContext.Provider
@@ -265,7 +190,6 @@ export const MembershipRequestProvider = ({ children }: { children: ReactNode })
         membershipData,
         setMembershipData,
         updatePersonalDetails,
-        updateDemographicInformation,
         updateContactInformation,
         updateProfessionalInfo,
         updateSocialPresence,
