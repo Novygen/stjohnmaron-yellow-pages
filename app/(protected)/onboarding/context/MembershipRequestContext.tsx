@@ -61,6 +61,7 @@ export interface MembershipRequestData {
     displayPhonePublicly: boolean;
   };
   isApproved: boolean;
+  isActioned: boolean;
   createdAt: string;
   updatedAt: string;
   softDeleted?: boolean;
@@ -86,6 +87,7 @@ export const defaultMembershipRequest: MembershipRequestData = {
   },
   privacyConsent: { internalConsent: false, displayInYellowPages: false, displayPhonePublicly: false },
   isApproved: false,
+  isActioned: false,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 };

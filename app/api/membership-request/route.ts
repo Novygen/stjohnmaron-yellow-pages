@@ -73,6 +73,7 @@ const membershipRequestSchema = z.object({
     displayPhonePublicly: z.boolean(),
   }),
   isApproved: z.boolean().optional().default(false),
+  isActioned: z.boolean().optional().default(false),
 });
 
 export async function POST(request: Request) {
