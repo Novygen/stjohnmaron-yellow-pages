@@ -175,7 +175,7 @@ export default function Step1({ next }: Step1Props) {
         className="border w-full p-2 rounded mb-2"
         value={address.zip}
         onChange={(e) =>
-          updateContactInformation({ address: { ...address, zip: e.target.value } })
+          updateContactInformation({ address: { ...address, zip: e.target.value, country: "United States" } })
         }
         required
       />
@@ -184,7 +184,7 @@ export default function Step1({ next }: Step1Props) {
         type="text"
         readOnly
         className="border w-full p-2 rounded mb-4 bg-gray-100"
-        value={statesData.country}
+        value={"United States"}
       />
       <button onClick={handleNext} className="bg-blue-500 text-white px-4 py-2 rounded">
         Next
