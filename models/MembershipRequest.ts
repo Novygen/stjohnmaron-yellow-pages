@@ -29,34 +29,32 @@ export interface IContactInformation {
 }
 
 export interface IEmploymentStatus {
-  status: string;
+  status: string; // Comma-separated values: "employed,business_owner,student" or "other"
 }
 
 export interface IEmploymentDetails {
   companyName: string;
   jobTitle: string;
   specialization: string;
-  startDate: string; // Format: "MM/YYYY"
 }
 
 export interface IBusiness {
   businessName: string;
-  additionalInformation: string;
-  website: string;
-  phoneNumber: string;
   industry: string;
+  description: string;
+  website?: string;
+  phoneNumber?: string;
 }
 
 export interface IStudent {
-  schoolName: string;
-  fieldOfStudy: string;
-  expectedGraduationYear: number;
+  schoolName?: string;
+  fieldOfStudy?: string;
+  expectedGraduationYear?: number;
 }
 
 export interface IProfessionalInfo {
   employmentStatus: IEmploymentStatus;
   employmentDetails?: IEmploymentDetails;
-  ownsBusinessOrService?: boolean;
   business?: IBusiness;
   student?: IStudent;
 }
@@ -130,7 +128,46 @@ const MembershipRequestSchema = new Schema<IMembershipRequest>(
         message: "Primary phone number and email are required",
       },
     },
-    professionalInfo: { type: Object, required: true },
+    professionalInfo: {
+      type: Object,
+      required: true,
+      validate: {
+        validator: (value: IProfessionalInfo) => {
+          if (!value.employmentStatus?.status) return false;
+
+          const statuses = value.employmentStatus.status.split(',');
+          
+          // Check if the combination is valid
+          if (statuses.includes('other')) {
+            return statuses.length === 1; // 'other' can't be combined with other statuses
+          }
+
+          // For active statuses (employed, business_owner, student)
+          let isValid = true;
+
+          // Check required fields for each selected status
+          if (statuses.includes('employed')) {
+            isValid = isValid && !!(
+              value.employmentDetails?.companyName?.trim() &&
+              value.employmentDetails?.jobTitle?.trim() &&
+              value.employmentDetails?.specialization?.trim()
+            );
+          }
+
+          if (statuses.includes('business_owner')) {
+            isValid = isValid && !!(
+              value.business?.businessName?.trim() &&
+              value.business?.industry?.trim() &&
+              value.business?.description?.trim()
+            );
+          }
+
+          // Student fields are optional, so no validation needed
+          return isValid;
+        },
+        message: "Required professional information is missing or employment status combination is invalid",
+      },
+    },
     socialPresence: { type: Object, required: true },
     privacyConsent: { type: Object, required: true },
     isApproved: { type: Boolean, default: false },

@@ -1,19 +1,19 @@
 import { NextResponse } from "next/server";
-import dbConnect from "@/lib/mongoose";
-import { Industry } from "@/models/Industry";
-import industriesData from "@/data/industries.json";
+
+const industries = [
+  { id: "tech", name: "Technology" },
+  { id: "healthcare", name: "Healthcare" },
+  { id: "finance", name: "Finance" },
+  { id: "education", name: "Education" },
+  { id: "manufacturing", name: "Manufacturing" },
+  { id: "retail", name: "Retail" },
+  { id: "construction", name: "Construction" },
+  { id: "real_estate", name: "Real Estate" },
+  { id: "legal", name: "Legal Services" },
+  { id: "hospitality", name: "Hospitality" },
+  { id: "other", name: "Other" },
+];
 
 export async function GET() {
-  await dbConnect();
-
-  // Check if any industries exist in the database.
-  const count = await Industry.countDocuments();
-  if (count === 0) {
-    // If empty, populate with data from the JSON file.
-    await Industry.insertMany(industriesData);
-  }
-
-  // Return the list of industries.
-  const industries = await Industry.find();
   return NextResponse.json(industries);
 }

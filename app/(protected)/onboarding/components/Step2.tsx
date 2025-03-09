@@ -1,598 +1,507 @@
-/* eslint-disable react-hooks/rules-of-hooks */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import React, { useState, useEffect } from "react";
-import Select from "react-select";
-import useMembershipRequest from "../hooks/useMembershipRequest";
 
-interface Option {
-  value: string;
-  label: string;
-}
+import React, { useEffect, useState } from "react";
+import useMembershipRequest from "../hooks/useMembershipRequest";
+import {
+  FormControl,
+  FormLabel,
+  Input,
+  Button,
+  Text,
+  SimpleGrid,
+  useColorMode,
+  FormErrorMessage,
+  VStack,
+  Select,
+  Box,
+  HStack,
+  Textarea,
+  useToast,
+  Spinner,
+  Center,
+  Checkbox,
+} from "@chakra-ui/react";
+import { IEmploymentDetails, IBusiness, IStudent } from "@/models/MembershipRequest";
 
 interface Step2Props {
   next: () => void;
   back: () => void;
 }
 
-const defaultEmploymentDetails = {
-  companyName: "",
-  jobTitle: "",
-  specialization: "",
-  startDate: "",
-};
+interface Industry {
+  id: string;
+  name: string;
+}
 
-const defaultBusiness = {
-  businessName: "",
-  additionalInformation: "",
-  website: "",
-  phoneNumber: "",
-  industry: "",
-};
+interface Specialization {
+  id: string;
+  name: string;
+  industryId: string;
+}
+
+const ACTIVE_STATUSES = ["employed", "business_owner", "student"];
+const INACTIVE_STATUS = "other";
+
+const employmentStatusOptions = [
+  { value: "employed", label: "Employed", group: "active" },
+  { value: "business_owner", label: "Business Owner/Service Provider", group: "active" },
+  { value: "student", label: "Student", group: "active" },
+  { value: "other", label: "Retired/Unemployed/Homemaker", group: "inactive" },
+];
 
 export default function Step2({ next, back }: Step2Props) {
   const { membershipData, updateProfessionalInfo } = useMembershipRequest();
-  const [localProfessional, setLocalProfessional] = useState(membershipData.professionalInfo);
-  const employmentStatus = localProfessional.employmentStatus.status;
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { colorMode } = useColorMode();
+  const inputBg = colorMode === "light" ? "white" : "gray.700";
+  const toast = useToast();
 
-  // State for specialization and industry options
-  const [specializationOptions, setSpecializationOptions] = useState<Option[]>([]);
-  const [industryOptions, setIndustryOptions] = useState<Option[]>([]);
+  const [industries, setIndustries] = useState<Industry[]>([]);
+  const [specializations, setSpecializations] = useState<Specialization[]>([]);
+  const [selectedIndustryId, setSelectedIndustryId] = useState<string>("");
+  const [loading, setLoading] = useState(true);
 
-  // For Start Date dropdowns: Month and Year.
-  const monthOptions: Option[] = [
-    { value: "01", label: "January" },
-    { value: "02", label: "February" },
-    { value: "03", label: "March" },
-    { value: "04", label: "April" },
-    { value: "05", label: "May" },
-    { value: "06", label: "June" },
-    { value: "07", label: "July" },
-    { value: "08", label: "August" },
-    { value: "09", label: "September" },
-    { value: "10", label: "October" },
-    { value: "11", label: "November" },
-    { value: "12", label: "December" },
-  ];
-  const currentYear = new Date().getFullYear();
-  const yearOptions: Option[] = [];
-  for (let y = currentYear; y >= 1990; y--) {
-    yearOptions.push({ value: y.toString(), label: y.toString() });
-  }
-  const [startMonth, setStartMonth] = useState<string>("");
-  const [startYear, setStartYear] = useState<string>("");
+  const { employmentStatus, employmentDetails, business, student } = membershipData.professionalInfo;
+  const statuses = employmentStatus?.status?.split(',').filter(Boolean) || [];
 
-  // Initialize startMonth and startYear from employmentDetails.startDate if exists.
-  useEffect(() => {
-    if (localProfessional.employmentDetails?.startDate) {
-      const parts = localProfessional.employmentDetails.startDate.split("/");
-      if (parts.length === 2) {
-        setStartMonth(parts[0]);
-        setStartYear(parts[1]);
-      }
+  const isStatusDisabled = (option: typeof employmentStatusOptions[0]) => {
+    if (option.group === "inactive") {
+      return statuses.some(s => ACTIVE_STATUSES.includes(s));
     }
-  }, [localProfessional.employmentDetails?.startDate]);
+    return statuses.includes(INACTIVE_STATUS);
+  };
 
-  // Fetch specialization options from API (fallback to local if error)
   useEffect(() => {
-    async function fetchSpecializations() {
+    const fetchIndustries = async () => {
       try {
-        const res = await fetch("/api/specializations");
-        const data = await res.json();
-        if (data && Array.isArray(data)) {
-          setSpecializationOptions(
-            data.map((item: any) => ({ value: item.name, label: item.name }))
-          );
-        }
-      } catch (error) {
-        console.error("Error fetching specializations, using fallback.", error);
-        import("@/data/specializations.json").then((module) => {
-          const specs = module.default;
-          setSpecializationOptions(
-            specs.map((spec: any) => ({ value: spec.name, label: spec.name }))
-          );
+        const response = await fetch("/api/industries");
+        if (!response.ok) throw new Error("Failed to fetch industries");
+        const data = await response.json();
+        setIndustries(data);
+        setLoading(false);
+      } catch (error: unknown) {
+        console.error("Failed to fetch industries:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load industries. Please try again.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
         });
+        setLoading(false);
       }
-    }
-    fetchSpecializations();
-  }, []);
+    };
 
-  // Fetch industry options from API (fallback to local if error)
-  useEffect(() => {
-    async function fetchIndustries() {
-      try {
-        const res = await fetch("/api/industries");
-        const data = await res.json();
-        if (data && Array.isArray(data)) {
-          setIndustryOptions(
-            data.map((item: any) => ({ value: item.name, label: item.name }))
-          );
-        }
-      } catch (error) {
-        console.error("Error fetching industries, using fallback.", error);
-        import("@/data/industries.json").then((module) => {
-          const inds = module.default;
-          setIndustryOptions(
-            inds.map((ind: any) => ({ value: ind.name, label: ind.name }))
-          );
-        });
-      }
-    }
     fetchIndustries();
-  }, []);
+  }, [toast]);
 
-  // Handle changes in employment status.
-  const handleStatusChange = (value: string) => {
-    if (value === "Employed") {
-      setLocalProfessional({
-        ...localProfessional,
-        employmentStatus: { status: value },
-        employmentDetails: { ...defaultEmploymentDetails },
-        ownsBusinessOrService: false,
-        business: undefined,
-        student: undefined,
-      });
-    } else if (value === "BusinessOwner") {
-      setLocalProfessional({
-        ...localProfessional,
-        employmentStatus: { status: value },
-        business: { ...defaultBusiness },
-        employmentDetails: undefined,
-        ownsBusinessOrService: undefined,
-        student: undefined,
-      });
-    } else if (value === "Student") {
-      setLocalProfessional({
-        ...localProfessional,
-        employmentStatus: { status: value },
-        student: { schoolName: "", fieldOfStudy: "", expectedGraduationYear: 0 },
-        employmentDetails: undefined,
-        business: undefined,
-        ownsBusinessOrService: undefined,
-      });
-    } else {
-      // Retired/Unemployed
-      setLocalProfessional({
-        ...localProfessional,
-        employmentStatus: { status: value },
-        employmentDetails: undefined,
-        business: undefined,
-        student: undefined,
-        ownsBusinessOrService: undefined,
-      });
+  useEffect(() => {
+    const fetchSpecializations = async () => {
+      if (!selectedIndustryId) {
+        setSpecializations([]);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/specializations?industryId=${selectedIndustryId}`);
+        if (!response.ok) throw new Error("Failed to fetch specializations");
+        const data = await response.json();
+        setSpecializations(data);
+      } catch (error: unknown) {
+        console.error("Failed to fetch specializations:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load specializations. Please try again.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+    };
+
+    fetchSpecializations();
+  }, [selectedIndustryId, toast]);
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (statuses.length === 0) {
+      newErrors.status = "Employment status is required";
+      return false;
     }
-  };
 
-  // Handle checkbox for "I also own a business/provide services"
-  const handleOwnsBusinessChange = (checked: boolean) => {
-    setLocalProfessional((prev) => ({
-      ...prev,
-      ownsBusinessOrService: checked,
-      business: checked ? { ...defaultBusiness } : undefined,
-    }));
-  };
-
-  // Handle changes for start month and year
-  const handleStartMonthChange = (option: Option | null) => {
-    const newMonth = option ? option.value : "";
-    setStartMonth(newMonth);
-    if (newMonth && startYear) {
-      setLocalProfessional((prev) => ({
-        ...prev,
-        employmentDetails: {
-          ...(prev.employmentDetails || defaultEmploymentDetails),
-          startDate: `${newMonth}/${startYear}`,
-        },
-      }));
+    // Check each selected status for required fields
+    if (statuses.includes("employed")) {
+      if (!employmentDetails?.companyName?.trim()) {
+        newErrors.companyName = "Company name is required";
+      }
+      if (!employmentDetails?.jobTitle?.trim()) {
+        newErrors.jobTitle = "Job title is required";
+      }
+      if (!employmentDetails?.specialization?.trim()) {
+        newErrors.specialization = "Specialization is required";
+      }
     }
-  };
 
-  const handleStartYearChange = (option: Option | null) => {
-    const newYear = option ? option.value : "";
-    setStartYear(newYear);
-    if (startMonth && newYear) {
-      setLocalProfessional((prev) => ({
-        ...prev,
-        employmentDetails: {
-          ...(prev.employmentDetails || defaultEmploymentDetails),
-          startDate: `${startMonth}/${newYear}`,
-        },
-      }));
+    if (statuses.includes("business_owner")) {
+      if (!business?.businessName?.trim()) {
+        newErrors.businessName = "Business/Service name is required";
+      }
+      if (!business?.industry?.trim()) {
+        newErrors.businessIndustry = "Industry is required";
+      }
+      if (!business?.description?.trim()) {
+        newErrors.description = "Business/Service description is required";
+      }
     }
+
+    // Student fields are optional, so no validation needed
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleNext = () => {
-    if (employmentStatus === "Employed") {
-      const details = localProfessional.employmentDetails || defaultEmploymentDetails;
-      if (
-        !details.companyName.trim() ||
-        !details.jobTitle.trim() ||
-        !details.specialization.trim() ||
-        !details.startDate.trim()
-      ) {
-        alert("Please fill in all required employment details.");
-        return;
-      }
-      if (localProfessional.ownsBusinessOrService) {
-        const bus = localProfessional.business || defaultBusiness;
-        if (
-          !bus.businessName.trim() ||
-          !bus.additionalInformation.trim() ||
-          !bus.website.trim() ||
-          !bus.phoneNumber.trim() ||
-          !bus.industry.trim()
-        ) {
-          alert("Please fill in all required business details.");
-          return;
-        }
-      }
+    if (validateForm()) {
+      next();
     }
-    if (employmentStatus === "BusinessOwner") {
-      const bus = localProfessional.business || defaultBusiness;
-      if (
-        !bus.businessName.trim() ||
-        !bus.additionalInformation.trim() ||
-        !bus.website.trim() ||
-        !bus.phoneNumber.trim() ||
-        !bus.industry.trim()
-      ) {
-        alert("Please fill in all required business details.");
-        return;
-      }
-    }
-    if (employmentStatus === "Student") {
-      const student = localProfessional.student;
-      if (
-        !student ||
-        !student.schoolName.trim() ||
-        !student.fieldOfStudy.trim() ||
-        !student.expectedGraduationYear
-      ) {
-        alert("Please fill in all required student details.");
-        return;
-      }
-    }
-    updateProfessionalInfo(localProfessional);
-    next();
   };
 
-  return (
-    <div className="bg-white p-6 rounded shadow w-full max-w-md mx-auto">
-      <h2 className="text-xl font-bold mb-4">Step 2: Professional & Business Info</h2>
-      <label className="block mb-1 font-semibold">Employment Status</label>
-      <select
-        className="border w-full p-2 rounded mb-4"
-        value={employmentStatus}
-        onChange={(e) => handleStatusChange(e.target.value)}
-      >
-        <option value="">Select</option>
-        <option value="Employed">Employed</option>
-        <option value="BusinessOwner">Business Owner/Service Provider</option>
-        <option value="Retired">Retired/Unemployed</option>
-        <option value="Student">Student</option>
-      </select>
-
-      {employmentStatus === "Employed" && (
-        <>
-          {localProfessional.employmentDetails && (
-            <div className="mb-4 border p-4 rounded bg-gray-50">
-              <label className="block mb-1 font-semibold">Company Name</label>
-              <input
-                type="text"
-                className="border w-full mb-2 p-2 rounded"
-                placeholder="Company Name"
-                value={localProfessional.employmentDetails.companyName}
-                onChange={(e) =>
-                  setLocalProfessional({
-                    ...localProfessional,
-                    employmentDetails: {
-                      ...(localProfessional.employmentDetails || defaultEmploymentDetails),
-                      companyName: e.target.value,
-                    },
-                  })
-                }
-              />
-              <label className="block mb-1 font-semibold">Job Title/Role</label>
-              <input
-                type="text"
-                className="border w-full mb-2 p-2 rounded"
-                placeholder="Job Title/Role"
-                value={localProfessional.employmentDetails.jobTitle}
-                onChange={(e) =>
-                  setLocalProfessional({
-                    ...localProfessional,
-                    employmentDetails: {
-                      ...(localProfessional.employmentDetails || defaultEmploymentDetails),
-                      jobTitle: e.target.value,
-                    },
-                  })
-                }
-              />
-              <label className="block mb-1 font-semibold">Specialization</label>
-              <Select
-                options={specializationOptions}
-                value={
-                  specializationOptions.find(
-                    (opt) =>
-                      opt.value === (localProfessional.employmentDetails?.specialization || "")
-                  ) || null
-                }
-                onChange={(option) =>
-                  setLocalProfessional({
-                    ...localProfessional,
-                    employmentDetails: {
-                      ...(localProfessional.employmentDetails || defaultEmploymentDetails),
-                      specialization: option ? option.value : "",
-                    },
-                  })
-                }
-                placeholder="Select Specialization"
-                isSearchable
-              />
-              <label className="block mb-1 font-semibold">Start Date</label>
-              <div className="flex gap-2">
-                <Select
-                  options={monthOptions}
-                  value={monthOptions.find((opt) => opt.value === startMonth) || null}
-                  onChange={handleStartMonthChange}
-                  placeholder="Month"
-                  isSearchable
-                />
-                <Select
-                  options={yearOptions}
-                  value={yearOptions.find((opt) => opt.value === startYear) || null}
-                  onChange={handleStartYearChange}
-                  placeholder="Year"
-                  isSearchable
-                />
-              </div>
-            </div>
-          )}
-          <div className="mb-4">
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                className="mr-2"
-                checked={!!localProfessional.ownsBusinessOrService}
-                onChange={(e) => handleOwnsBusinessChange(e.target.checked)}
-              />
-              <span>I also own a business/provide services</span>
-            </label>
-          </div>
-          {localProfessional.ownsBusinessOrService && (
-            <div className="mb-4 border p-4 rounded bg-gray-50">
-            <label className="block mb-1 font-semibold">Business/Service Name</label>
-            <input
-              type="text"
-              className="border w-full mb-2 p-2 rounded"
-              placeholder="Business Name"
-              value={(localProfessional.business || defaultBusiness).businessName}
-              onChange={(e) =>
-                setLocalProfessional({
-                  ...localProfessional,
-                  business: {
-                    ...(localProfessional.business || defaultBusiness),
-                    businessName: e.target.value,
-                  },
-                })
-              }
-            />
-            <label className="block mb-1 font-semibold">Industry</label>
-            <Select
-              options={industryOptions}
-              value={
-                industryOptions.find(
-                  (opt) =>
-                    opt.value === (localProfessional.business?.industry || "")
-                ) || null
-              }
-              onChange={(option) =>
-                setLocalProfessional({
-                  ...localProfessional,
-                  business: {
-                    ...(localProfessional.business || defaultBusiness),
-                    industry: option ? option.value : "",
-                  },
-                })
-              }
-              placeholder="Select Industry"
-              isSearchable
-            />
-            <label className="block mb-1 font-semibold">Additional Information</label>
-            <input
-              type="text"
-              className="border w-full mb-2 p-2 rounded"
-              placeholder="Additional Information"
-              value={(localProfessional.business || defaultBusiness).additionalInformation}
-              onChange={(e) =>
-                setLocalProfessional({
-                  ...localProfessional,
-                  business: {
-                    ...(localProfessional.business || defaultBusiness),
-                    additionalInformation: e.target.value,
-                  },
-                })
-              }
-            />
-            <label className="block mb-1 font-semibold">Phone Number</label>
-            <input
-              type="text"
-              className="border w-full mb-2 p-2 rounded"
-              placeholder="Phone Number"
-              value={(localProfessional.business || defaultBusiness).phoneNumber}
-              onChange={(e) =>
-                setLocalProfessional({
-                  ...localProfessional,
-                  business: {
-                    ...(localProfessional.business || defaultBusiness),
-                    phoneNumber: e.target.value,
-                  },
-                })
-              }
-            />
-            <label className="block mb-1 font-semibold">Website</label>
-            <input
-              type="text"
-              className="border w-full mb-2 p-2 rounded"
-              placeholder="Website"
-              value={(localProfessional.business || defaultBusiness).website}
-              onChange={(e) =>
-                setLocalProfessional({
-                  ...localProfessional,
-                  business: {
-                    ...(localProfessional.business || defaultBusiness),
-                    website: e.target.value,
-                  },
-                })
-              }
-            />
-          </div>
-          )}
-        </>
-      )}
-
-      {employmentStatus === "BusinessOwner" && (
-        <div className="mb-4 border p-4 rounded bg-gray-50">
-          <label className="block mb-1 font-semibold">Business/Service Name</label>
-          <input
-            type="text"
-            className="border w-full mb-2 p-2 rounded"
-            placeholder="Business Name"
-            value={(localProfessional.business || defaultBusiness).businessName}
+  const renderEmployedFields = () => (
+    <VStack spacing={4} align="stretch">
+      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+        <FormControl isRequired isInvalid={!!errors.companyName}>
+          <FormLabel>Company Name</FormLabel>
+          <Input
+            bg={inputBg}
+            value={employmentDetails?.companyName || ""}
             onChange={(e) =>
-              setLocalProfessional({
-                ...localProfessional,
-                business: {
-                  ...(localProfessional.business || defaultBusiness),
-                  businessName: e.target.value,
-                },
+              updateProfessionalInfo({
+                employmentDetails: {
+                  companyName: e.target.value,
+                  jobTitle: employmentDetails?.jobTitle || "",
+                  specialization: employmentDetails?.specialization || "",
+                } as IEmploymentDetails,
               })
             }
           />
-          <label className="block mb-1 font-semibold">Industry</label>
+          <FormErrorMessage>{errors.companyName}</FormErrorMessage>
+        </FormControl>
+
+        <FormControl isRequired isInvalid={!!errors.jobTitle}>
+          <FormLabel>Job Title</FormLabel>
+          <Input
+            bg={inputBg}
+            value={employmentDetails?.jobTitle || ""}
+            onChange={(e) =>
+              updateProfessionalInfo({
+                employmentDetails: {
+                  companyName: employmentDetails?.companyName || "",
+                  jobTitle: e.target.value,
+                  specialization: employmentDetails?.specialization || "",
+                } as IEmploymentDetails,
+              })
+            }
+          />
+          <FormErrorMessage>{errors.jobTitle}</FormErrorMessage>
+        </FormControl>
+      </SimpleGrid>
+
+      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+        <FormControl>
+          <FormLabel>Industry</FormLabel>
           <Select
-            options={industryOptions}
-            value={
-              industryOptions.find(
-                (opt) =>
-                  opt.value === (localProfessional.business?.industry || "")
-              ) || null
-            }
-            onChange={(option) =>
-              setLocalProfessional({
-                ...localProfessional,
-                business: {
-                  ...(localProfessional.business || defaultBusiness),
-                  industry: option ? option.value : "",
-                },
-              })
-            }
+            bg={inputBg}
+            value={selectedIndustryId}
+            onChange={(e) => setSelectedIndustryId(e.target.value)}
             placeholder="Select Industry"
-            isSearchable
-          />
-          <label className="block mb-1 font-semibold">Additional Information</label>
-          <input
-            type="text"
-            className="border w-full mb-2 p-2 rounded"
-            placeholder="Additional Information"
-            value={(localProfessional.business || defaultBusiness).additionalInformation}
+          >
+            {industries.map((industry) => (
+              <option key={industry.id} value={industry.id}>
+                {industry.name}
+              </option>
+            ))}
+          </Select>
+        </FormControl>
+
+        <FormControl isRequired isInvalid={!!errors.specialization}>
+          <FormLabel>Specialization</FormLabel>
+          <Select
+            bg={inputBg}
+            value={employmentDetails?.specialization || ""}
             onChange={(e) =>
-              setLocalProfessional({
-                ...localProfessional,
-                business: {
-                  ...(localProfessional.business || defaultBusiness),
-                  additionalInformation: e.target.value,
-                },
+              updateProfessionalInfo({
+                employmentDetails: {
+                  companyName: employmentDetails?.companyName || "",
+                  jobTitle: employmentDetails?.jobTitle || "",
+                  specialization: e.target.value,
+                } as IEmploymentDetails,
               })
             }
-          />
-          <label className="block mb-1 font-semibold">Phone Number</label>
-          <input
-            type="text"
-            className="border w-full mb-2 p-2 rounded"
-            placeholder="Phone Number"
-            value={(localProfessional.business || defaultBusiness).phoneNumber}
+            placeholder="Select Specialization"
+            isDisabled={!selectedIndustryId}
+          >
+            {specializations.map((spec) => (
+              <option key={spec.id} value={spec.id}>
+                {spec.name}
+              </option>
+            ))}
+          </Select>
+          <FormErrorMessage>{errors.specialization}</FormErrorMessage>
+        </FormControl>
+      </SimpleGrid>
+    </VStack>
+  );
+
+  const renderBusinessOwnerFields = () => (
+    <VStack spacing={4} align="stretch">
+      <FormControl isRequired isInvalid={!!errors.businessName}>
+        <FormLabel>Business/Service Name</FormLabel>
+        <Input
+          bg={inputBg}
+          value={business?.businessName || ""}
+          onChange={(e) =>
+            updateProfessionalInfo({
+              business: {
+                businessName: e.target.value,
+                industry: business?.industry || "",
+                description: business?.description || "",
+                website: business?.website,
+                phoneNumber: business?.phoneNumber,
+              } as IBusiness,
+            })
+          }
+        />
+        <FormErrorMessage>{errors.businessName}</FormErrorMessage>
+      </FormControl>
+
+      <FormControl isRequired isInvalid={!!errors.businessIndustry}>
+        <FormLabel>Industry</FormLabel>
+        <Select
+          bg={inputBg}
+          value={business?.industry || ""}
+          onChange={(e) =>
+            updateProfessionalInfo({
+              business: {
+                businessName: business?.businessName || "",
+                industry: e.target.value,
+                description: business?.description || "",
+                website: business?.website,
+                phoneNumber: business?.phoneNumber,
+              } as IBusiness,
+            })
+          }
+          placeholder="Select Industry"
+        >
+          {industries.map((industry) => (
+            <option key={industry.id} value={industry.id}>
+              {industry.name}
+            </option>
+          ))}
+        </Select>
+        <FormErrorMessage>{errors.businessIndustry}</FormErrorMessage>
+      </FormControl>
+
+      <FormControl isRequired isInvalid={!!errors.description}>
+        <FormLabel>Business/Service Description</FormLabel>
+        <Textarea
+          bg={inputBg}
+          value={business?.description || ""}
+          onChange={(e) =>
+            updateProfessionalInfo({
+              business: {
+                businessName: business?.businessName || "",
+                industry: business?.industry || "",
+                description: e.target.value,
+                website: business?.website,
+                phoneNumber: business?.phoneNumber,
+              } as IBusiness,
+            })
+          }
+          placeholder="Describe what your business does or list your services..."
+          rows={4}
+        />
+        <FormErrorMessage>{errors.description}</FormErrorMessage>
+      </FormControl>
+
+      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+        <FormControl>
+          <FormLabel>Phone Number (Optional)</FormLabel>
+          <Input
+            bg={inputBg}
+            type="tel"
+            value={business?.phoneNumber || ""}
             onChange={(e) =>
-              setLocalProfessional({
-                ...localProfessional,
+              updateProfessionalInfo({
                 business: {
-                  ...(localProfessional.business || defaultBusiness),
+                  businessName: business?.businessName || "",
+                  industry: business?.industry || "",
+                  description: business?.description || "",
+                  website: business?.website,
                   phoneNumber: e.target.value,
-                },
+                } as IBusiness,
               })
             }
           />
-          <label className="block mb-1 font-semibold">Industry</label>
-          <label className="block mb-1 font-semibold">Website</label>
-          <input
-            type="text"
-            className="border w-full mb-2 p-2 rounded"
-            placeholder="Website"
-            value={(localProfessional.business || defaultBusiness).website}
+        </FormControl>
+
+        <FormControl>
+          <FormLabel>Website (Optional)</FormLabel>
+          <Input
+            bg={inputBg}
+            type="url"
+            value={business?.website || ""}
             onChange={(e) =>
-              setLocalProfessional({
-                ...localProfessional,
+              updateProfessionalInfo({
                 business: {
-                  ...(localProfessional.business || defaultBusiness),
+                  businessName: business?.businessName || "",
+                  industry: business?.industry || "",
+                  description: business?.description || "",
                   website: e.target.value,
-                },
+                  phoneNumber: business?.phoneNumber,
+                } as IBusiness,
               })
             }
           />
-        </div>
+        </FormControl>
+      </SimpleGrid>
+    </VStack>
+  );
+
+  const renderStudentFields = () => (
+    <VStack spacing={4} align="stretch">
+      <FormControl>
+        <FormLabel>School Name (Optional)</FormLabel>
+        <Input
+          bg={inputBg}
+          value={student?.schoolName || ""}
+          onChange={(e) =>
+            updateProfessionalInfo({
+              student: {
+                schoolName: e.target.value,
+                fieldOfStudy: student?.fieldOfStudy,
+                expectedGraduationYear: student?.expectedGraduationYear,
+              } as IStudent,
+            })
+          }
+        />
+      </FormControl>
+
+      <FormControl>
+        <FormLabel>Field of Study (Optional)</FormLabel>
+        <Input
+          bg={inputBg}
+          value={student?.fieldOfStudy || ""}
+          onChange={(e) =>
+            updateProfessionalInfo({
+              student: {
+                schoolName: student?.schoolName,
+                fieldOfStudy: e.target.value,
+                expectedGraduationYear: student?.expectedGraduationYear,
+              } as IStudent,
+            })
+          }
+        />
+      </FormControl>
+
+      <FormControl>
+        <FormLabel>Expected Graduation Year (Optional)</FormLabel>
+        <Input
+          bg={inputBg}
+          type="number"
+          value={student?.expectedGraduationYear || ""}
+          onChange={(e) =>
+            updateProfessionalInfo({
+              student: {
+                schoolName: student?.schoolName,
+                fieldOfStudy: student?.fieldOfStudy,
+                expectedGraduationYear: parseInt(e.target.value) || undefined,
+              } as IStudent,
+            })
+          }
+        />
+      </FormControl>
+    </VStack>
+  );
+
+  if (loading) {
+    return (
+      <Center h="400px">
+        <Spinner size="xl" />
+      </Center>
+    );
+  }
+
+  return (
+    <VStack spacing={6} align="stretch">
+      <Text fontSize="2xl" fontWeight="bold" mb={2}>
+        Professional Information
+      </Text>
+      <Text color="gray.600" mb={6}>
+        Tell us about your professional background
+      </Text>
+
+      <FormControl isRequired isInvalid={!!errors.status}>
+        <FormLabel>Employment Status</FormLabel>
+        <Text fontSize="sm" color="gray.500" mb={4}>
+          Note: You can combine employment, business ownership, and student status. However, retired/unemployed/homemaker cannot be combined with other options.
+        </Text>
+        <SimpleGrid columns={{ base: 1, md: 1 }} spacing={3}>
+          {employmentStatusOptions.map((option) => (
+            <FormControl key={option.value}>
+              <Checkbox
+                isChecked={statuses.includes(option.value)}
+                onChange={(e) => {
+                  const newStatus = e.target.checked
+                    ? [...statuses, option.value]
+                    : statuses.filter(s => s !== option.value);
+                  updateProfessionalInfo({
+                    employmentStatus: { status: newStatus.join(',') },
+                  });
+                }}
+                isDisabled={isStatusDisabled(option)}
+                size="lg"
+                colorScheme="blue"
+              >
+                {option.label}
+              </Checkbox>
+            </FormControl>
+          ))}
+        </SimpleGrid>
+        <FormErrorMessage>{errors.status}</FormErrorMessage>
+      </FormControl>
+
+      {statuses.length > 0 && (
+        <Box mt={8}>
+          {statuses.includes('employed') && (
+            <Box mb={8}>
+              <Text fontSize="lg" fontWeight="semibold" mb={4}>Employment Information</Text>
+              {renderEmployedFields()}
+            </Box>
+          )}
+          {statuses.includes('business_owner') && (
+            <Box mb={8}>
+              <Text fontSize="lg" fontWeight="semibold" mb={4}>Business Information</Text>
+              {renderBusinessOwnerFields()}
+            </Box>
+          )}
+          {statuses.includes('student') && (
+            <Box mb={8}>
+              <Text fontSize="lg" fontWeight="semibold" mb={4}>Student Information</Text>
+              {renderStudentFields()}
+            </Box>
+          )}
+        </Box>
       )}
 
-      {employmentStatus === "Student" && (
-        <div className="mb-4 border p-4 rounded bg-gray-50">
-          <label className="block mb-1 font-semibold">School/University Name</label>
-          <input
-            type="text"
-            className="border w-full mb-2 p-2 rounded"
-            placeholder="School/University"
-            value={localProfessional.student?.schoolName || ""}
-            onChange={(e) => {
-              const current = localProfessional.student || { schoolName: "", fieldOfStudy: "", expectedGraduationYear: 0 };
-              setLocalProfessional({
-                ...localProfessional,
-                student: { ...current, schoolName: e.target.value },
-              });
-            }}
-          />
-          <label className="block mb-1 font-semibold">Field Of Study</label>
-          <input
-            type="text"
-            className="border w-full mb-2 p-2 rounded"
-            placeholder="Field Of Study"
-            value={localProfessional.student?.fieldOfStudy || ""}
-            onChange={(e) => {
-              const current = localProfessional.student || { schoolName: "", fieldOfStudy: "", expectedGraduationYear: 0 };
-              setLocalProfessional({
-                ...localProfessional,
-                student: { ...current, fieldOfStudy: e.target.value },
-              });
-            }}
-          />
-          <label className="block mb-1 font-semibold">Expected Graduation Year</label>
-          <input
-            type="number"
-            className="border w-full mb-2 p-2 rounded"
-            placeholder="Graduation Year"
-            value={localProfessional.student?.expectedGraduationYear || 0}
-            onChange={(e) => {
-              const current = localProfessional.student || { schoolName: "", fieldOfStudy: "", expectedGraduationYear: 0 };
-              setLocalProfessional({
-                ...localProfessional,
-                student: { ...current, expectedGraduationYear: parseInt(e.target.value, 10) || 0 },
-              });
-            }}
-          />
-        </div>
-      )}
-
-      <div className="flex justify-between mt-4">
-        <button onClick={back} className="bg-gray-300 text-black px-4 py-2 rounded">Previous</button>
-        <button onClick={handleNext} className="bg-blue-500 text-white px-4 py-2 rounded">Next</button>
-      </div>
-    </div>
+      <HStack spacing={4} mt={8} justify="flex-end">
+        <Button size="lg" onClick={back} variant="outline">
+          Back
+        </Button>
+        <Button size="lg" colorScheme="blue" onClick={handleNext}>
+          Continue to Social Presence
+        </Button>
+      </HStack>
+    </VStack>
   );
 }

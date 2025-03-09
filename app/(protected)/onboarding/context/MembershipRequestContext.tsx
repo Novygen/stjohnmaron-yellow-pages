@@ -4,80 +4,37 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { selectUserUid } from "@/store/slices/userSlice";
+import {
+  IMemberLogin,
+  IPersonalDetails,
+  IContactInformation,
+  IProfessionalInfo,
+  ISocialPresence,
+  IPrivacyConsent,
+} from "@/models/MembershipRequest";
 
 export interface MembershipRequestData {
-  memberLogin: {
-    uid: string;
-  };
-  personalDetails: {
-    firstName: string;
-    lastName: string;
-    middleName: string;
-    ageRange: string;
-  };
-  contactInformation: {
-    primaryPhoneNumber: string;
-    primaryEmail: string;
-    address: {
-      line1: string;
-      line2: string;
-      city: string;
-      state: string;
-      zip: string;
-      country: string;
-    };
-  };
-  professionalInfo: {
-    employmentStatus: { status: string };
-    employmentDetails?: {
-      companyName: string;
-      jobTitle: string;
-      specialization: string;
-      startDate: string;
-    };
-    ownsBusinessOrService?: boolean;
-    business?: {
-      businessName: string;
-      additionalInformation: string;
-      website: string;
-      phoneNumber: string;
-      industry: string;
-    };
-    student?: {
-      schoolName: string;
-      fieldOfStudy: string;
-      expectedGraduationYear: number;
-    };
-  };
-  socialPresence: {
-    personalWebsite?: string;
-    linkedInProfile?: string;
-    facebookProfile?: string;
-    instagramHandle?: string;
-  };
-  privacyConsent: {
-    internalConsent: boolean;
-    displayInYellowPages: boolean;
-    displayPhonePublicly: boolean;
-  };
+  memberLogin: IMemberLogin;
+  personalDetails: IPersonalDetails;
+  contactInformation: IContactInformation;
+  professionalInfo: IProfessionalInfo;
+  socialPresence: ISocialPresence;
+  privacyConsent: IPrivacyConsent;
   isApproved: boolean;
-  isActioned: boolean;
-  createdAt: string;
-  updatedAt: string;
   softDeleted?: boolean;
   lastModifiedBy?: string;
 }
 
 export const defaultMembershipRequest: MembershipRequestData = {
   memberLogin: { uid: "" },
-  personalDetails: { firstName: "", lastName: "", middleName: "", ageRange: "" },
+  personalDetails: { firstName: "", lastName: "", ageRange: "" },
   contactInformation: {
     primaryPhoneNumber: "",
     primaryEmail: "",
     address: { line1: "", line2: "", city: "", state: "", zip: "", country: "" },
   },
   professionalInfo: {
-    employmentStatus: { status: "" },
+    employmentStatus: { status: "employed" },
   },
   socialPresence: {
     personalWebsite: "",
@@ -87,19 +44,17 @@ export const defaultMembershipRequest: MembershipRequestData = {
   },
   privacyConsent: { internalConsent: false, displayInYellowPages: false, displayPhonePublicly: false },
   isApproved: false,
-  isActioned: false,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
+  softDeleted: false,
 };
 
 interface MembershipRequestContextType {
   membershipData: MembershipRequestData;
   setMembershipData: React.Dispatch<React.SetStateAction<MembershipRequestData>>;
-  updatePersonalDetails: (data: Partial<MembershipRequestData["personalDetails"]>) => void;
-  updateContactInformation: (data: Partial<MembershipRequestData["contactInformation"]>) => void;
-  updateProfessionalInfo: (data: Partial<MembershipRequestData["professionalInfo"]>) => void;
-  updateSocialPresence: (data: Partial<MembershipRequestData["socialPresence"]>) => void;
-  updatePrivacyConsent: (data: Partial<MembershipRequestData["privacyConsent"]>) => void;
+  updatePersonalDetails: (data: Partial<IPersonalDetails>) => void;
+  updateContactInformation: (data: Partial<IContactInformation>) => void;
+  updateProfessionalInfo: (data: Partial<IProfessionalInfo>) => void;
+  updateSocialPresence: (data: Partial<ISocialPresence>) => void;
+  updatePrivacyConsent: (data: Partial<IPrivacyConsent>) => void;
   submitMembershipRequest: () => Promise<any>;
   loading: boolean;
 }
@@ -123,35 +78,35 @@ export const MembershipRequestProvider = ({ children }: { children: ReactNode })
     }));
   }, [userUid]);
 
-  const updatePersonalDetails = (data: Partial<MembershipRequestData["personalDetails"]>) => {
+  const updatePersonalDetails = (data: Partial<IPersonalDetails>) => {
     setMembershipData(prev => ({
       ...prev,
       personalDetails: { ...prev.personalDetails, ...data },
     }));
   };
 
-  const updateContactInformation = (data: Partial<MembershipRequestData["contactInformation"]>) => {
+  const updateContactInformation = (data: Partial<IContactInformation>) => {
     setMembershipData(prev => ({
       ...prev,
       contactInformation: { ...prev.contactInformation, ...data },
     }));
   };
 
-  const updateProfessionalInfo = (data: Partial<MembershipRequestData["professionalInfo"]>) => {
+  const updateProfessionalInfo = (data: Partial<IProfessionalInfo>) => {
     setMembershipData(prev => ({
       ...prev,
       professionalInfo: { ...prev.professionalInfo, ...data },
     }));
   };
 
-  const updateSocialPresence = (data: Partial<MembershipRequestData["socialPresence"]>) => {
+  const updateSocialPresence = (data: Partial<ISocialPresence>) => {
     setMembershipData(prev => ({
       ...prev,
       socialPresence: { ...prev.socialPresence, ...data },
     }));
   };
 
-  const updatePrivacyConsent = (data: Partial<MembershipRequestData["privacyConsent"]>) => {
+  const updatePrivacyConsent = (data: Partial<IPrivacyConsent>) => {
     setMembershipData(prev => ({
       ...prev,
       privacyConsent: { ...prev.privacyConsent, ...data },
@@ -184,7 +139,6 @@ export const MembershipRequestProvider = ({ children }: { children: ReactNode })
       setLoading(false);
     }
   };
-  
 
   return (
     <MembershipRequestContext.Provider
