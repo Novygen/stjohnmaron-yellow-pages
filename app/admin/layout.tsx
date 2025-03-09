@@ -1,37 +1,21 @@
 'use client';
 
-import {
-  Box,
-  Container,
-  Heading,
-  HStack,
-  Button,
-  useToast,
-  Icon,
-  Spinner,
-  Center,
-} from '@chakra-ui/react';
+import { Box, useToast, useDisclosure } from '@chakra-ui/react';
 import { ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import Link from 'next/link';
-import { MdDashboard, MdPeople, MdLogout } from 'react-icons/md';
-import { useSelector, useDispatch } from 'react-redux';
-import { selectIsAdminAuthenticated } from '@/store/slices/adminSlice';
-import { clearAdminCredentials } from '@/store/slices/adminSlice';
+import { useDispatch } from 'react-redux';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/admin.firebase';
-
-const NAV_ITEMS = [
-  { label: 'Dashboard', href: '/admin/dashboard', icon: MdDashboard },
-  { label: 'Requests', href: '/admin/requests', icon: MdPeople },
-];
+import { clearAdminCredentials } from '@/store/slices/adminSlice';
+import AdminSidebar from '@/app/components/AdminSidebar';
+import AdminTopbar from '@/app/components/AdminTopbar';
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const toast = useToast();
   const dispatch = useDispatch();
-  const isAuthenticated = useSelector(selectIsAdminAuthenticated);
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   const handleLogout = async () => {
     try {
@@ -53,82 +37,25 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     }
   };
 
-  // If not on sign-in page and not authenticated, redirect to sign-in
-  if (!isAuthenticated && pathname !== '/admin') {
-    router.push('/admin');
-    return (
-      <Center minH="100vh">
-        <Spinner
-          thickness="4px"
-          speed="0.65s"
-          emptyColor="gray.200"
-          color="brand.500"
-          size="xl"
-        />
-      </Center>
-    );
-  }
-
-  // On sign-in page and authenticated, redirect to dashboard
-  if (isAuthenticated && pathname === '/admin') {
-    router.push('/admin/dashboard');
-    return (
-      <Center minH="100vh">
-        <Spinner
-          thickness="4px"
-          speed="0.65s"
-          emptyColor="gray.200"
-          color="brand.500"
-          size="xl"
-        />
-      </Center>
-    );
-  }
-
   // Show sign-in page without navigation
   if (pathname === '/admin') {
     return <>{children}</>;
   }
 
-  // Show protected layout with navigation
   return (
-    <Box>
-      <Box bg="brand.500" color="white" py={4} mb={8}>
-        <Container maxW="container.xl">
-          <HStack justify="space-between">
-            <HStack spacing={8}>
-              <Heading size="lg">Admin Portal</Heading>
-              <HStack spacing={4}>
-                {NAV_ITEMS.map((item) => (
-                  <Link key={item.href} href={item.href} passHref>
-                    <Button
-                      as="a"
-                      variant={pathname === item.href ? 'solid' : 'ghost'}
-                      leftIcon={<Icon as={item.icon} />}
-                      color="white"
-                      _hover={{ bg: 'brand.600' }}
-                    >
-                      {item.label}
-                    </Button>
-                  </Link>
-                ))}
-              </HStack>
-            </HStack>
-            <Button
-              variant="ghost"
-              leftIcon={<Icon as={MdLogout} />}
-              onClick={handleLogout}
-              color="white"
-              _hover={{ bg: 'brand.600' }}
-            >
-              Logout
-            </Button>
-          </HStack>
-        </Container>
+    <Box minH="100vh" bg="gray.50">
+      <AdminSidebar isOpen={isOpen} onClose={onClose} />
+      <AdminTopbar onMobileMenuClick={onOpen} onLogout={handleLogout} />
+      
+      <Box
+        ml={{ base: 0, lg: '64' }}
+        pt="16"
+        transition=".3s ease"
+      >
+        <Box as="main" p={9}>
+          {children}
+        </Box>
       </Box>
-      <Container maxW="container.xl">
-        {children}
-      </Container>
     </Box>
   );
 } 

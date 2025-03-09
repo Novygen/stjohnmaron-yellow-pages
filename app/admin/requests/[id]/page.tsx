@@ -14,6 +14,7 @@ import {
   CardHeader,
   CardBody,
   Divider,
+  Spinner,
 } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -22,15 +23,47 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/admin.firebase';
 import withAuth from '@/hoc/withAdminAuth';
 
+interface Industry {
+  id: string;
+  name: string;
+}
+
+interface Specialization {
+  id: string;
+  name: string;
+  industryId: string;
+  industryName: string;
+}
+
 function RequestDetail({ params }: { params: { id: string } }) {
   const [request, setRequest] = useState<IMembershipRequest | null>(null);
   const [updateNotes, setUpdateNotes] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [industries, setIndustries] = useState<Industry[]>([]);
+  const [specializationDetails, setSpecializationDetails] = useState<Specialization | null>(null);
+  const [isLoadingSpecialization, setIsLoadingSpecialization] = useState(false);
   const [user] = useAuthState(auth);
   const router = useRouter();
   const toast = useToast();
 
+  // Fetch industries
+  useEffect(() => {
+    const fetchIndustries = async () => {
+      try {
+        const response = await fetch('/api/industries');
+        if (!response.ok) throw new Error('Failed to fetch industries');
+        const data = await response.json();
+        setIndustries(data);
+      } catch (error) {
+        console.error('Failed to fetch industries:', error);
+      }
+    };
+
+    fetchIndustries();
+  }, []);
+
+  // Fetch request details
   useEffect(() => {
     const fetchRequest = async () => {
       try {
@@ -44,6 +77,22 @@ function RequestDetail({ params }: { params: { id: string } }) {
         if (response.ok) {
           const data = await response.json();
           setRequest(data);
+          
+          // If there's employment details with specialization, fetch its details
+          if (data.professionalInfo.employmentDetails?.specialization) {
+            setIsLoadingSpecialization(true);
+            try {
+              const specResponse = await fetch(`/api/specializations/${data.professionalInfo.employmentDetails.specialization}`);
+              if (specResponse.ok) {
+                const specData = await specResponse.json();
+                setSpecializationDetails(specData);
+              }
+            } catch (error) {
+              console.error('Failed to fetch specialization details:', error);
+            } finally {
+              setIsLoadingSpecialization(false);
+            }
+          }
         } else {
           toast({
             title: 'Error fetching request details',
@@ -114,8 +163,13 @@ function RequestDetail({ params }: { params: { id: string } }) {
     }
   };
 
+  const getIndustryName = (industryId: string) => {
+    const industry = industries.find(ind => ind.id === industryId);
+    return industry?.name || industryId;
+  };
+
   if (isLoading || !request) {
-    return <Box p={8}>Loading...</Box>;
+    return <Box p={4}>Loading...</Box>;
   }
 
   return (
@@ -123,12 +177,10 @@ function RequestDetail({ params }: { params: { id: string } }) {
       <VStack spacing={6} align="stretch">
         <HStack justify="space-between">
           <Heading size="lg">Request Details</Heading>
-          <Button onClick={() => router.push('/admin/dashboard')}>
-            Back to Dashboard
-          </Button>
         </HStack>
 
         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+          {/* Personal Information Card */}
           <Card>
             <CardHeader>
               <Heading size="md">Personal Information</Heading>
@@ -153,6 +205,7 @@ function RequestDetail({ params }: { params: { id: string } }) {
             </CardBody>
           </Card>
 
+          {/* Contact Information Card */}
           <Card>
             <CardHeader>
               <Heading size="md">Contact Information</Heading>
@@ -184,6 +237,7 @@ function RequestDetail({ params }: { params: { id: string } }) {
             </CardBody>
           </Card>
 
+          {/* Professional Information Card */}
           <Card>
             <CardHeader>
               <Heading size="md">Professional Information</Heading>
@@ -207,8 +261,20 @@ function RequestDetail({ params }: { params: { id: string } }) {
                       <Text>{request.professionalInfo.employmentDetails.jobTitle}</Text>
                     </Box>
                     <Box>
-                      <Text fontWeight="bold">Specialization</Text>
-                      <Text>{request.professionalInfo.employmentDetails.specialization}</Text>
+                      <Text fontWeight="bold">Industry & Specialization</Text>
+                      {isLoadingSpecialization ? (
+                        <HStack>
+                          <Spinner size="sm" />
+                          <Text>Loading specialization details...</Text>
+                        </HStack>
+                      ) : specializationDetails ? (
+                        <VStack align="start" spacing={1}>
+                          <Text>{specializationDetails.industryName}</Text>
+                          <Text color="gray.500">{specializationDetails.name}</Text>
+                        </VStack>
+                      ) : (
+                        <Text>Specialization details not found</Text>
+                      )}
                     </Box>
                   </>
                 )}
@@ -222,7 +288,7 @@ function RequestDetail({ params }: { params: { id: string } }) {
                     </Box>
                     <Box>
                       <Text fontWeight="bold">Industry</Text>
-                      <Text>{request.professionalInfo.business.industry}</Text>
+                      <Text>{getIndustryName(request.professionalInfo.business.industry)}</Text>
                     </Box>
                     <Box>
                       <Text fontWeight="bold">Description</Text>
@@ -248,73 +314,38 @@ function RequestDetail({ params }: { params: { id: string } }) {
                       <Text fontWeight="bold">Field of Study</Text>
                       <Text>{request.professionalInfo.student.fieldOfStudy}</Text>
                     </Box>
-                    <Box>
-                      <Text fontWeight="bold">Expected Graduation</Text>
-                      <Text>{request.professionalInfo.student.expectedGraduationYear}</Text>
-                    </Box>
                   </>
                 )}
               </VStack>
             </CardBody>
           </Card>
 
+          {/* Update Status Card */}
           <Card>
             <CardHeader>
-              <Heading size="md">Additional Information</Heading>
+              <Heading size="md">Update Status</Heading>
             </CardHeader>
             <CardBody>
               <VStack spacing={4} align="stretch">
-                <Box>
-                  <Text fontWeight="bold">Status</Text>
-                  <Text>
-                    {request.isApproved 
-                      ? 'Approved'
-                      : request.softDeleted
-                        ? 'Update Required'
-                        : 'Pending'
-                    }
-                  </Text>
-                </Box>
-                {request.lastModifiedBy && (
-                  <Box>
-                    <Text fontWeight="bold">Last Modified By</Text>
-                    <Text>{request.lastModifiedBy}</Text>
-                  </Box>
-                )}
-              </VStack>
-            </CardBody>
-          </Card>
-        </SimpleGrid>
-
-        {!request.isApproved && !request.softDeleted && (
-          <Card>
-            <CardHeader>
-              <Heading size="md">Actions</Heading>
-            </CardHeader>
-            <CardBody>
-              <VStack spacing={4} align="stretch">
-                <Box>
-                  <Text fontWeight="bold" mb={2}>Update Request Notes</Text>
-                  <Textarea
-                    value={updateNotes}
-                    onChange={(e) => setUpdateNotes(e.target.value)}
-                    placeholder="Enter notes for update request..."
-                  />
-                </Box>
-
+                <Textarea
+                  placeholder="Add notes about the update (optional)"
+                  value={updateNotes}
+                  onChange={(e) => setUpdateNotes(e.target.value)}
+                />
                 <HStack spacing={4}>
                   <Button
                     colorScheme="green"
                     onClick={() => handleStatusUpdate('approve')}
                     isLoading={isSubmitting}
+                    isDisabled={request.isApproved}
                   >
-                    Approve Request
+                    Approve
                   </Button>
                   <Button
                     colorScheme="orange"
                     onClick={() => handleStatusUpdate('update')}
                     isLoading={isSubmitting}
-                    isDisabled={!updateNotes.trim()}
+                    isDisabled={request.softDeleted}
                   >
                     Request Update
                   </Button>
@@ -322,7 +353,7 @@ function RequestDetail({ params }: { params: { id: string } }) {
               </VStack>
             </CardBody>
           </Card>
-        )}
+        </SimpleGrid>
       </VStack>
     </Box>
   );

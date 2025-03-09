@@ -10,13 +10,16 @@ import {
   Td,
   Button,
   Heading,
-  HStack,
   Select,
   Input,
   VStack,
   Card,
   CardBody,
   useToast,
+  TableContainer,
+  Text,
+  Stack,
+  Badge,
 } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -84,23 +87,43 @@ function RequestsPage() {
     return matchesStatus && matchesSearch;
   });
 
+  const getStatusBadge = (request: IMembershipRequest) => {
+    if (request.isApproved) {
+      return <Badge colorScheme="green">Approved</Badge>;
+    }
+    if (request.softDeleted) {
+      return <Badge colorScheme="orange">Update Required</Badge>;
+    }
+    return <Badge colorScheme="blue">Pending</Badge>;
+  };
+
   if (isLoading) {
-    return <Box p={8}>Loading...</Box>;
+    return <Box p={4}>Loading...</Box>;
   }
 
   return (
-    <Box p={8}>
-      <VStack spacing={6} align="stretch">
+    <Box p={{ base: 2, md: 4 }}>
+      <VStack spacing={4} align="stretch">
         <Card>
           <CardBody>
-            <VStack spacing={6} align="stretch">
-              <HStack justify="space-between">
-                <Heading size="lg">Membership Requests</Heading>
-                <HStack spacing={4}>
+            <VStack spacing={4} align="stretch">
+              <Stack
+                direction={{ base: 'column', md: 'row' }}
+                justify="space-between"
+                align={{ base: 'stretch', md: 'center' }}
+                spacing={4}
+              >
+                <Heading size={{ base: 'md', lg: 'lg' }}>Membership Requests</Heading>
+                <Stack
+                  direction={{ base: 'column', sm: 'row' }}
+                  spacing={4}
+                  w={{ base: '100%', md: 'auto' }}
+                >
                   <Select 
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    w="200px"
+                    size="sm"
+                    w={{ base: '100%', sm: '150px' }}
                   >
                     <option value="all">All Status</option>
                     <option value="pending">Pending</option>
@@ -112,44 +135,53 @@ function RequestsPage() {
                     placeholder="Search by name or email"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    w="300px"
+                    size="sm"
+                    w={{ base: '100%', sm: '200px' }}
                   />
-                </HStack>
-              </HStack>
+                </Stack>
+              </Stack>
 
-              <Table variant="simple">
-                <Thead>
-                  <Tr>
-                    <Th>Name</Th>
-                    <Th>Email</Th>
-                    <Th>Status</Th>
-                    <Th>Actions</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {filteredRequests.map((request) => (
-                    <Tr key={request._id?.toString()}>
-                      <Td>
-                        {request.personalDetails.firstName} {request.personalDetails.lastName}
-                      </Td>
-                      <Td>{request.contactInformation.primaryEmail}</Td>
-                      <Td>
-                        {request.isApproved 
-                          ? 'Approved'
-                          : request.softDeleted
-                            ? 'Update Required'
-                            : 'Pending'
-                        }
-                      </Td>
-                      <Td>
-                        <Link href={`/admin/requests/${request._id}`} passHref>
-                          <Button size="sm">View Details</Button>
-                        </Link>
-                      </Td>
+              <TableContainer>
+                <Table variant="simple" size={{ base: 'sm', lg: 'md' }}>
+                  <Thead>
+                    <Tr>
+                      <Th>Name</Th>
+                      <Th display={{ base: 'none', md: 'table-cell' }}>Email</Th>
+                      <Th>Status</Th>
+                      <Th>Actions</Th>
                     </Tr>
-                  ))}
-                </Tbody>
-              </Table>
+                  </Thead>
+                  <Tbody>
+                    {filteredRequests.map((request) => (
+                      <Tr key={request._id?.toString()}>
+                        <Td>
+                          <VStack align="start" spacing={0}>
+                            <Text>
+                              {request.personalDetails.firstName} {request.personalDetails.lastName}
+                            </Text>
+                            <Text 
+                              fontSize="sm" 
+                              color="gray.500" 
+                              display={{ base: 'block', md: 'none' }}
+                            >
+                              {request.contactInformation.primaryEmail}
+                            </Text>
+                          </VStack>
+                        </Td>
+                        <Td display={{ base: 'none', md: 'table-cell' }}>
+                          {request.contactInformation.primaryEmail}
+                        </Td>
+                        <Td>{getStatusBadge(request)}</Td>
+                        <Td>
+                          <Link href={`/admin/requests/${request._id}`} passHref>
+                            <Button size="sm" colorScheme="blue">View Details</Button>
+                          </Link>
+                        </Td>
+                      </Tr>
+                    ))}
+                  </Tbody>
+                </Table>
+              </TableContainer>
             </VStack>
           </CardBody>
         </Card>
