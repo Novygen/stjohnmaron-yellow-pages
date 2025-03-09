@@ -14,7 +14,13 @@ import {
   FormErrorMessage,
   VStack,
   Select,
+  Box,
+  Collapse,
+  useDisclosure,
+  IconButton,
+  Flex,
 } from "@chakra-ui/react";
+import { ChevronDownIcon, ChevronUpIcon } from "@chakra-ui/icons";
 import statesData from "@/data/states.json";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/index";
@@ -29,6 +35,7 @@ export default function Step1({ next }: Step1Props) {
   const userEmail = useSelector((state: RootState) => state.user.email);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { colorMode } = useColorMode();
+  const { isOpen: isAddressOpen, onToggle: onAddressToggle } = useDisclosure();
   const inputBg = colorMode === "light" ? "white" : "gray.700";
 
   // Age range options
@@ -42,34 +49,44 @@ export default function Step1({ next }: Step1Props) {
   ];
 
   const { personalDetails, contactInformation } = membershipData;
-  const address = contactInformation.address;
+  const address = contactInformation.address || {};
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!personalDetails.firstName.trim()) {
+    if (!personalDetails.firstName?.trim()) {
       newErrors.firstName = "First Name is required";
     }
-    if (!personalDetails.lastName.trim()) {
+    if (!personalDetails.lastName?.trim()) {
       newErrors.lastName = "Last Name is required";
     }
     if (!personalDetails.ageRange) {
       newErrors.ageRange = "Age Range is required";
     }
-    if (!contactInformation.primaryPhoneNumber.trim()) {
+    if (!contactInformation.primaryPhoneNumber?.trim()) {
       newErrors.phone = "Phone Number is required";
     }
-    if (!address.line1.trim()) {
-      newErrors.addressLine1 = "Address Line 1 is required";
+    if (!userEmail?.trim()) {
+      newErrors.email = "Email is required";
     }
-    if (!address.city.trim()) {
-      newErrors.city = "City is required";
-    }
-    if (!address.state.trim()) {
-      newErrors.state = "State is required";
-    }
-    if (!address.zip.trim()) {
-      newErrors.zip = "ZIP is required";
+
+    // Only validate address fields if they have been filled out
+    if (isAddressOpen) {
+      if (address.line1?.trim() || address.city?.trim() || address.state?.trim() || address.zip?.trim()) {
+        // If any address field is filled, validate all required address fields
+        if (!address.line1?.trim()) {
+          newErrors.addressLine1 = "Address Line 1 is required if providing an address";
+        }
+        if (!address.city?.trim()) {
+          newErrors.city = "City is required if providing an address";
+        }
+        if (!address.state?.trim()) {
+          newErrors.state = "State is required if providing an address";
+        }
+        if (!address.zip?.trim()) {
+          newErrors.zip = "ZIP is required if providing an address";
+        }
+      }
     }
 
     setErrors(newErrors);
@@ -97,7 +114,7 @@ export default function Step1({ next }: Step1Props) {
           Personal Details
         </Text>
         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-          <FormControl isInvalid={!!errors.firstName}>
+          <FormControl isRequired isInvalid={!!errors.firstName}>
             <FormLabel>First Name</FormLabel>
             <Input
               bg={inputBg}
@@ -110,7 +127,7 @@ export default function Step1({ next }: Step1Props) {
             <FormErrorMessage>{errors.firstName}</FormErrorMessage>
           </FormControl>
 
-          <FormControl isInvalid={!!errors.lastName}>
+          <FormControl isRequired isInvalid={!!errors.lastName}>
             <FormLabel>Last Name</FormLabel>
             <Input
               bg={inputBg}
@@ -130,7 +147,7 @@ export default function Step1({ next }: Step1Props) {
           />
         </FormControl>
 
-        <FormControl isInvalid={!!errors.ageRange}>
+        <FormControl isRequired isInvalid={!!errors.ageRange}>
           <FormLabel>Age Range</FormLabel>
           <Select
             bg={inputBg}
@@ -157,7 +174,7 @@ export default function Step1({ next }: Step1Props) {
         </Text>
 
         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-          <FormControl isInvalid={!!errors.phone}>
+          <FormControl isRequired isInvalid={!!errors.phone}>
             <FormLabel>Phone Number</FormLabel>
             <Input
               bg={inputBg}
@@ -168,94 +185,116 @@ export default function Step1({ next }: Step1Props) {
             <FormErrorMessage>{errors.phone}</FormErrorMessage>
           </FormControl>
 
-          <FormControl>
+          <FormControl isRequired isInvalid={!!errors.email}>
             <FormLabel>Email</FormLabel>
             <Input bg={inputBg} type="email" value={userEmail || ""} readOnly />
+            <FormErrorMessage>{errors.email}</FormErrorMessage>
           </FormControl>
         </SimpleGrid>
 
-        <Text fontWeight="semibold" color="blue.600" mt={4}>
-          Address
-        </Text>
-
-        <FormControl isInvalid={!!errors.addressLine1}>
-          <FormLabel>Address Line 1</FormLabel>
-          <Input
-            bg={inputBg}
-            value={address.line1}
-            onChange={(e) =>
-              updateContactInformation({ address: { ...address, line1: e.target.value } })
-            }
-          />
-          <FormErrorMessage>{errors.addressLine1}</FormErrorMessage>
-        </FormControl>
-
-        <FormControl>
-          <FormLabel>Address Line 2 (optional)</FormLabel>
-          <Input
-            bg={inputBg}
-            value={address.line2}
-            onChange={(e) =>
-              updateContactInformation({ address: { ...address, line2: e.target.value } })
-            }
-          />
-        </FormControl>
-
-        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-          <FormControl isInvalid={!!errors.city}>
-            <FormLabel>City</FormLabel>
-            <Input
-              bg={inputBg}
-              value={address.city}
-              onChange={(e) =>
-                updateContactInformation({ address: { ...address, city: e.target.value } })
-              }
+        {/* Optional Address Section */}
+        <Box>
+          <Flex justify="space-between" align="center" onClick={onAddressToggle} cursor="pointer" mb={2}>
+            <Text fontWeight="semibold" color="blue.600">
+              Address (Optional)
+            </Text>
+            <IconButton
+              aria-label={isAddressOpen ? "Collapse address section" : "Expand address section"}
+              icon={isAddressOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+              variant="ghost"
+              size="sm"
             />
-            <FormErrorMessage>{errors.city}</FormErrorMessage>
-          </FormControl>
+          </Flex>
 
-          <FormControl isInvalid={!!errors.state}>
-            <FormLabel>State</FormLabel>
-            <Select
-              bg={inputBg}
-              value={address.state}
-              onChange={(e) =>
-                updateContactInformation({
-                  address: { ...address, state: e.target.value },
-                })
-              }
-              placeholder="Select State"
-            >
-              {statesData.states.map((state) => (
-                <option key={state} value={state}>
-                  {state}
-                </option>
-              ))}
-            </Select>
-            <FormErrorMessage>{errors.state}</FormErrorMessage>
-          </FormControl>
-        </SimpleGrid>
+          <Collapse in={isAddressOpen}>
+            <VStack spacing={4} align="stretch">
+              <FormControl isInvalid={!!errors.addressLine1}>
+                <FormLabel>Address Line 1</FormLabel>
+                <Input
+                  bg={inputBg}
+                  value={address.line1}
+                  onChange={(e) =>
+                    updateContactInformation({
+                      address: { ...address, line1: e.target.value },
+                    })
+                  }
+                />
+                <FormErrorMessage>{errors.addressLine1}</FormErrorMessage>
+              </FormControl>
 
-        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-          <FormControl isInvalid={!!errors.zip}>
-            <FormLabel>ZIP</FormLabel>
-            <Input
-              bg={inputBg}
-              value={address.zip}
-              onChange={(e) =>
-                updateContactInformation({
-                  address: { ...address, zip: e.target.value, country: "United States" },
-                })
-              }
-            />
-            <FormErrorMessage>{errors.zip}</FormErrorMessage>
-          </FormControl>
+              <FormControl>
+                <FormLabel>Address Line 2 (optional)</FormLabel>
+                <Input
+                  bg={inputBg}
+                  value={address.line2}
+                  onChange={(e) =>
+                    updateContactInformation({
+                      address: { ...address, line2: e.target.value },
+                    })
+                  }
+                />
+              </FormControl>
 
-          <FormControl>
-            <FormLabel>Country</FormLabel>
-            <Input bg={inputBg} value="United States" readOnly />
-          </FormControl>
-        </SimpleGrid>
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                <FormControl isInvalid={!!errors.city}>
+                  <FormLabel>City</FormLabel>
+                  <Input
+                    bg={inputBg}
+                    value={address.city}
+                    onChange={(e) =>
+                      updateContactInformation({
+                        address: { ...address, city: e.target.value },
+                      })
+                    }
+                  />
+                  <FormErrorMessage>{errors.city}</FormErrorMessage>
+                </FormControl>
+
+                <FormControl isInvalid={!!errors.state}>
+                  <FormLabel>State</FormLabel>
+                  <Select
+                    bg={inputBg}
+                    value={address.state}
+                    onChange={(e) =>
+                      updateContactInformation({
+                        address: { ...address, state: e.target.value },
+                      })
+                    }
+                    placeholder="Select State"
+                  >
+                    {statesData.states.map((state) => (
+                      <option key={state} value={state}>
+                        {state}
+                      </option>
+                    ))}
+                  </Select>
+                  <FormErrorMessage>{errors.state}</FormErrorMessage>
+                </FormControl>
+              </SimpleGrid>
+
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                <FormControl isInvalid={!!errors.zip}>
+                  <FormLabel>ZIP</FormLabel>
+                  <Input
+                    bg={inputBg}
+                    value={address.zip}
+                    onChange={(e) =>
+                      updateContactInformation({
+                        address: { ...address, zip: e.target.value, country: "United States" },
+                      })
+                    }
+                  />
+                  <FormErrorMessage>{errors.zip}</FormErrorMessage>
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel>Country</FormLabel>
+                  <Input bg={inputBg} value="United States" readOnly />
+                </FormControl>
+              </SimpleGrid>
+            </VStack>
+          </Collapse>
+        </Box>
       </VStack>
 
       <Button

@@ -14,18 +14,18 @@ export interface IPersonalDetails {
 }
 
 export interface IAddress {
-  line1: string;
+  line1?: string;
   line2?: string;
-  city: string;
-  state: string;
-  zip: string;
-  country: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  country?: string;
 }
 
 export interface IContactInformation {
   primaryPhoneNumber: string;
   primaryEmail: string;
-  address: IAddress;
+  address?: IAddress;
 }
 
 export interface IEmploymentStatus {
@@ -88,9 +88,48 @@ export interface IMembershipRequest extends Document {
 
 const MembershipRequestSchema = new Schema<IMembershipRequest>(
   {
-    memberLogin: { type: Object, required: true },
-    personalDetails: { type: Object, required: true },
-    contactInformation: { type: Object, required: true },
+    memberLogin: {
+      type: Object,
+      required: true,
+      validate: {
+        validator: (value: IMemberLogin) => {
+          return value.uid !== undefined && value.uid !== null;
+        },
+        message: "Member login UID is required",
+      },
+    },
+    personalDetails: {
+      type: Object,
+      required: true,
+      validate: {
+        validator: (value: IPersonalDetails) => {
+          return (
+            value.firstName !== undefined &&
+            value.firstName.trim() !== "" &&
+            value.lastName !== undefined &&
+            value.lastName.trim() !== "" &&
+            value.ageRange !== undefined &&
+            value.ageRange.trim() !== ""
+          );
+        },
+        message: "First name, last name, and age range are required",
+      },
+    },
+    contactInformation: {
+      type: Object,
+      required: true,
+      validate: {
+        validator: (value: IContactInformation) => {
+          return (
+            value.primaryPhoneNumber !== undefined &&
+            value.primaryPhoneNumber.trim() !== "" &&
+            value.primaryEmail !== undefined &&
+            value.primaryEmail.trim() !== ""
+          );
+        },
+        message: "Primary phone number and email are required",
+      },
+    },
     professionalInfo: { type: Object, required: true },
     socialPresence: { type: Object, required: true },
     privacyConsent: { type: Object, required: true },
