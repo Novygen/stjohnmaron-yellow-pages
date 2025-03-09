@@ -40,7 +40,15 @@ export const defaultMembershipRequest: MembershipRequestData = {
     linkedInProfile: "",
     personalWebsite: "",
   },
-  privacyConsent: { internalConsent: false, displayInYellowPages: false, displayPhonePublicly: false },
+  privacyConsent: {
+    termsAccepted: false,
+    privacyPolicyAccepted: false,
+    directoryListing: false,
+    dataSharing: false,
+    internalConsent: false,
+    displayInYellowPages: false,
+    displayPhonePublicly: false,
+  },
   isApproved: false,
   softDeleted: false,
 };

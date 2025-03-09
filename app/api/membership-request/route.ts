@@ -13,18 +13,19 @@ const membershipRequestSchema = z.object({
     lastName: z.string(),
     middleName: z.string().optional(),
     ageRange: z.string(),
+    state: z.string().optional(),
   }),
   contactInformation: z.object({
     primaryPhoneNumber: z.string(),
     primaryEmail: z.string().email(),
     address: z.object({
-      line1: z.string(),
+      line1: z.string().optional(),
       line2: z.string().optional(),
-      city: z.string(),
-      state: z.string(),
-      zip: z.string(),
-      country: z.string(),
-    }),
+      city: z.string().optional(),
+      state: z.string().optional(),
+      zip: z.string().optional(),
+      country: z.string().optional(),
+    }).optional(),
   }),
   professionalInfo: z.object({
     employmentStatus: z.object({
@@ -35,45 +36,41 @@ const membershipRequestSchema = z.object({
         companyName: z.string(),
         jobTitle: z.string(),
         specialization: z.string(),
-        startDate: z
-          .string()
-          .regex(
-            /^(0[1-9]|1[0-2])\/\d{4}$/,
-            "Invalid format. Expected MM/YYYY"
-          ),
       })
       .optional(),
-    ownsBusinessOrService: z.boolean().optional(),
     business: z
       .object({
         businessName: z.string(),
-        additionalInformation: z.string(),
-        website: z.string(),
-        phoneNumber: z.string(),
         industry: z.string(),
+        description: z.string(),
+        website: z.string().optional(),
+        phoneNumber: z.string().optional(),
       })
       .optional(),
     student: z
       .object({
-        schoolName: z.string(),
-        fieldOfStudy: z.string(),
-        expectedGraduationYear: z.number(),
+        schoolName: z.string().optional(),
+        fieldOfStudy: z.string().optional(),
+        expectedGraduationYear: z.number().optional(),
       })
       .optional(),
   }),
   socialPresence: z.object({
-    personalWebsite: z.string().optional(),
     linkedInProfile: z.string().optional(),
-    facebookProfile: z.string().optional(),
-    instagramHandle: z.string().optional(),
+    personalWebsite: z.string().optional(),
   }),
   privacyConsent: z.object({
+    termsAccepted: z.boolean(),
+    privacyPolicyAccepted: z.boolean(),
+    directoryListing: z.boolean(),
+    dataSharing: z.boolean(),
     internalConsent: z.boolean(),
     displayInYellowPages: z.boolean(),
     displayPhonePublicly: z.boolean(),
   }),
   isApproved: z.boolean().optional().default(false),
-  isActioned: z.boolean().optional().default(false),
+  softDeleted: z.boolean().optional().default(false),
+  lastModifiedBy: z.string().optional(),
 });
 
 export async function POST(request: Request) {

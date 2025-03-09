@@ -11,6 +11,7 @@ export interface IPersonalDetails {
   lastName: string;
   middleName?: string;
   ageRange: string;
+  state?: string;
 }
 
 export interface IAddress {
@@ -65,6 +66,10 @@ export interface ISocialPresence {
 }
 
 export interface IPrivacyConsent {
+  termsAccepted: boolean;
+  privacyPolicyAccepted: boolean;
+  directoryListing: boolean;
+  dataSharing: boolean;
   internalConsent: boolean;
   displayInYellowPages: boolean;
   displayPhonePublicly: boolean;

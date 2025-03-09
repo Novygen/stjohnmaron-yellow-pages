@@ -1,61 +1,132 @@
 // app/(protected)/onboarding/components/Step5.tsx
 "use client";
-import React, { useEffect, useState, useRef } from "react";
+
+import React, { useEffect, useCallback } from "react";
+import {
+  VStack,
+  Text,
+  Button,
+  HStack,
+  Box,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
+  Spinner,
+  Center,
+} from "@chakra-ui/react";
+import { useRouter } from "next/navigation";
 import useMembershipRequest from "../hooks/useMembershipRequest";
 
 interface Step5Props {
-  finish: () => void;
   back: () => void;
 }
 
-export default function Step5({ finish, back }: Step5Props) {
+export default function Step5({ back }: Step5Props) {
+  const router = useRouter();
   const { submitMembershipRequest } = useMembershipRequest();
-  const [submissionStatus, setSubmissionStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const hasSubmittedRef = useRef(false);
+  const [submissionStatus, setSubmissionStatus] = React.useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [submissionError, setSubmissionError] = React.useState<string>("");
+
+  const submitRequest = useCallback(async () => {
+    if (submissionStatus !== "idle") return;
+    
+    setSubmissionStatus("submitting");
+    try {
+      await submitMembershipRequest();
+      setSubmissionStatus("success");
+    } catch (error) {
+      setSubmissionStatus("error");
+      if (error instanceof Error) {
+        setSubmissionError(error.message);
+      } else {
+        setSubmissionError("An unexpected error occurred");
+      }
+    }
+  }, [submitMembershipRequest, submissionStatus]);
 
   useEffect(() => {
-    // Prevent multiple submissions by checking if we've already submitted
-    if (hasSubmittedRef.current) return;
-    hasSubmittedRef.current = true;
-    
-    setSubmissionStatus("loading");
-    (async function postData() {
-      try {
-        await submitMembershipRequest();
-        setSubmissionStatus("success");
-      } catch {
-        setSubmissionStatus("error");
-      }
-    })();
-  }, [submitMembershipRequest]);
+    submitRequest();
+  }, [submitRequest]);
 
-  if (submissionStatus === "loading") {
-    return <div className="text-center p-4">Submitting Request...</div>;
-  } else if (submissionStatus === "error") {
+  if (submissionStatus === "idle" || submissionStatus === "submitting") {
     return (
-      <div className="bg-white p-4 rounded shadow w-full max-w-md mx-auto text-center">
-        <h2 className="text-2xl font-bold mb-4">Submission Failed</h2>
-        <p className="mb-6">There was an error submitting your membership request.</p>
-        <button onClick={back} className="bg-gray-300 text-black px-4 py-2 rounded">
-          Previous
-        </button>
-      </div>
-    );
-  } else if (submissionStatus === "success") {
-    return (
-      <div className="bg-white p-4 rounded shadow w-full max-w-md mx-auto text-center">
-        <h2 className="text-2xl font-bold mb-4">Onboarding Completed!</h2>
-        <p className="mb-6">
-          Congratulations! Your membership request was processed successfully.
-        </p>
-        <div className="flex justify-end">
-          <button onClick={finish} className="bg-green-500 text-white px-4 py-2 rounded">
-            Go to Dashboard
-          </button>
-        </div>
-      </div>
+      <Center minH="400px">
+        <VStack spacing={4}>
+          <Spinner size="xl" />
+          <Text>Submitting your membership request...</Text>
+        </VStack>
+      </Center>
     );
   }
 
-  return null;
+  if (submissionStatus === "success") {
+    return (
+      <Box textAlign="center" py={10} px={6}>
+        <Alert
+          status="success"
+          variant="subtle"
+          flexDirection="column"
+          alignItems="center"
+          justifyContent="center"
+          textAlign="center"
+          height="200px"
+          borderRadius="md"
+        >
+          <AlertIcon boxSize="40px" mr={0} />
+          <AlertTitle mt={4} mb={1} fontSize="lg">
+            Membership Request Submitted!
+          </AlertTitle>
+          <AlertDescription maxWidth="sm">
+            Thank you for completing the onboarding process. Your membership request has been submitted successfully.
+          </AlertDescription>
+        </Alert>
+        <Button 
+          mt={8} 
+          colorScheme="blue" 
+          size="lg" 
+          onClick={() => router.push("/member")}
+        >
+          Go to Dashboard
+        </Button>
+      </Box>
+    );
+  }
+
+  return (
+    <Box textAlign="center" py={10} px={6}>
+      <Alert
+        status="error"
+        variant="subtle"
+        flexDirection="column"
+        alignItems="center"
+        justifyContent="center"
+        textAlign="center"
+        height="200px"
+        borderRadius="md"
+      >
+        <AlertIcon boxSize="40px" mr={0} />
+        <AlertTitle mt={4} mb={1} fontSize="lg">
+          Submission Failed
+        </AlertTitle>
+        <AlertDescription maxWidth="sm">
+          {submissionError}
+        </AlertDescription>
+      </Alert>
+      <HStack spacing={4} justify="center" mt={8}>
+        <Button variant="outline" onClick={back}>
+          Back
+        </Button>
+        <Button 
+          colorScheme="blue" 
+          onClick={() => {
+            setSubmissionStatus("idle");
+            submitRequest();
+          }}
+        >
+          Try Again
+        </Button>
+      </HStack>
+    </Box>
+  );
 }
