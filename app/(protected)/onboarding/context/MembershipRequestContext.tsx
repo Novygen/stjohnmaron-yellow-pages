@@ -37,10 +37,8 @@ export const defaultMembershipRequest: MembershipRequestData = {
     employmentStatus: { status: "employed" },
   },
   socialPresence: {
-    personalWebsite: "",
     linkedInProfile: "",
-    facebookProfile: "",
-    instagramHandle: "",
+    personalWebsite: "",
   },
   privacyConsent: { internalConsent: false, displayInYellowPages: false, displayPhonePublicly: false },
   isApproved: false,
