@@ -22,6 +22,9 @@ import withAuth from "@/hoc/withAuth";
 export default withAuth(MemberDashboard);
 
 function MemberDashboard() {
+  // TODO: Replace with actual member status check
+  const isMemberApproved = false;
+  
   const cardBg = useColorModeValue("white", "gray.700");
   const cardHoverBg = useColorModeValue("gray.50", "gray.600");
 
@@ -36,19 +39,19 @@ function MemberDashboard() {
       title: "Member Directory",
       description: "Connect with other members of our community",
       icon: FiUsers,
-      href: "/member/directory",
+      href: isMemberApproved ? "/member/directory" : "/under-construction",
     },
     {
       title: "Events",
       description: "View upcoming events and register",
       icon: FiCalendar,
-      href: "/member/events",
+      href: isMemberApproved ? "/member/events" : "/under-construction",
     },
     {
       title: "Messages",
       description: "View your messages and notifications",
       icon: FiMessageSquare,
-      href: "/member/messages",
+      href: isMemberApproved ? "/member/messages" : "/under-construction",
     },
   ];
 
@@ -92,19 +95,22 @@ function MemberDashboard() {
           ))}
         </SimpleGrid>
 
-        <Box bg="blue.50" p={6} borderRadius="lg">
-          <VStack spacing={4} align="stretch">
-            <Heading size="md" color="blue.800">
-              Membership Status
-            </Heading>
-            <Text>
-              Your membership request is currently under review. We will notify you once it has been approved.
-            </Text>
-            <Button colorScheme="blue" size="sm" alignSelf="flex-start">
-              Check Status
-            </Button>
-          </VStack>
-        </Box>
+        {!isMemberApproved && (
+          <Box bg="blue.50" p={6} borderRadius="lg">
+            <VStack spacing={4} align="stretch">
+              <Heading size="md" color="blue.800">
+                Membership Status
+              </Heading>
+              <Text>
+                Your membership request is currently under review. Some features are limited until your membership is approved.
+                We will notify you once it has been approved.
+              </Text>
+              <Button colorScheme="blue" size="sm" alignSelf="flex-start">
+                Check Status
+              </Button>
+            </VStack>
+          </Box>
+        )}
       </VStack>
     </Container>
   );
