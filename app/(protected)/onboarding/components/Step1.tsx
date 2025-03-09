@@ -2,15 +2,23 @@
 
 import React from "react";
 import useMembershipRequest from "../hooks/useMembershipRequest";
-import Select from "react-select";
+import {
+  FormControl,
+  FormLabel,
+  Input,
+  Button,
+  Divider,
+  Text,
+  SimpleGrid,
+  useColorMode,
+  FormErrorMessage,
+  VStack,
+  Select,
+} from "@chakra-ui/react";
 import statesData from "@/data/states.json";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/index";
-
-interface Option {
-  value: string;
-  label: string;
-}
+import { useState } from "react";
 
 interface Step1Props {
   next: () => void;
@@ -19,9 +27,12 @@ interface Step1Props {
 export default function Step1({ next }: Step1Props) {
   const { membershipData, updatePersonalDetails, updateContactInformation } = useMembershipRequest();
   const userEmail = useSelector((state: RootState) => state.user.email);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { colorMode } = useColorMode();
+  const inputBg = colorMode === "light" ? "white" : "gray.700";
 
   // Age range options
-  const ageRangeOptions: Option[] = [
+  const ageRangeOptions = [
     { value: "18-24", label: "18-24" },
     { value: "25-34", label: "25-34" },
     { value: "35-44", label: "35-44" },
@@ -30,165 +41,233 @@ export default function Step1({ next }: Step1Props) {
     { value: "65+", label: "65+" },
   ];
 
-  // Create state options from the states.json file
-  const stateOptions: Option[] = statesData.states.map((state: string) => ({
-    value: state,
-    label: state,
-  }));
-
   const { personalDetails, contactInformation } = membershipData;
   const address = contactInformation.address;
 
-  const handleNext = () => {
-    // Validate required fields
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
     if (!personalDetails.firstName.trim()) {
-      alert("First Name is required.");
-      return;
+      newErrors.firstName = "First Name is required";
     }
     if (!personalDetails.lastName.trim()) {
-      alert("Last Name is required.");
-      return;
+      newErrors.lastName = "Last Name is required";
     }
     if (!personalDetails.ageRange) {
-      alert("Please select an Age Range.");
-      return;
+      newErrors.ageRange = "Age Range is required";
     }
     if (!contactInformation.primaryPhoneNumber.trim()) {
-      alert("Phone Number is required.");
-      return;
+      newErrors.phone = "Phone Number is required";
     }
     if (!address.line1.trim()) {
-      alert("Address Line 1 is required.");
-      return;
+      newErrors.addressLine1 = "Address Line 1 is required";
     }
     if (!address.city.trim()) {
-      alert("City is required.");
-      return;
+      newErrors.city = "City is required";
     }
     if (!address.state.trim()) {
-      alert("State is required.");
-      return;
+      newErrors.state = "State is required";
     }
     if (!address.zip.trim()) {
-      alert("ZIP is required.");
-      return;
+      newErrors.zip = "ZIP is required";
     }
-    next();
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleNext = () => {
+    if (validateForm()) {
+      next();
+    }
   };
 
   return (
-    <div className="bg-white p-6 rounded shadow w-full max-w-md mx-auto">
-      <h2 className="text-xl font-bold mb-4">Step 1: Basic Information</h2>
-      {/* Personal Details */}
-      <label className="block mb-1 font-semibold">First Name</label>
-      <input
-        type="text"
-        className="border w-full p-2 rounded mb-2"
-        value={personalDetails.firstName}
-        onChange={(e) => {
-          updatePersonalDetails({ firstName: e.target.value });
-          updateContactInformation({ primaryEmail: userEmail ?? "" });
-        }}
-        required
-      />
-      <label className="block mb-1 font-semibold">Last Name</label>
-      <input
-        type="text"
-        className="border w-full p-2 rounded mb-2"
-        value={personalDetails.lastName}
-        onChange={(e) => updatePersonalDetails({ lastName: e.target.value })}
-        required
-      />
-      <label className="block mb-1 font-semibold">Middle Name (optional)</label>
-      <input
-        type="text"
-        className="border w-full p-2 rounded mb-2"
-        value={personalDetails.middleName}
-        onChange={(e) => updatePersonalDetails({ middleName: e.target.value })}
-      />
-      <label className="block mb-1 font-semibold">Age Range</label>
-      <Select
-        options={ageRangeOptions}
-        value={ageRangeOptions.find((opt) => opt.value === personalDetails.ageRange) || null}
-        onChange={(option) => updatePersonalDetails({ ageRange: option ? option.value : "" })}
-        placeholder="Select Age Range"
-      />
-      <hr className="my-4" />
-      {/* Contact Information */}
-      <label className="block mb-1 font-semibold">Phone Number</label>
-      <input
-        type="tel"
-        className="border w-full p-2 rounded mb-2"
-        value={contactInformation.primaryPhoneNumber}
-        onChange={(e) => updateContactInformation({ primaryPhoneNumber: e.target.value })}
-        required
-      />
-      <label className="block mb-1 font-semibold">Email</label>
-      <input
-        type="email"
-        readOnly
-        className="border w-full p-2 rounded mb-4 bg-gray-100"
-        value={userEmail || ""}
-      />
-      <label className="block mb-1 font-semibold">Address Line 1</label>
-      <input
-        type="text"
-        className="border w-full p-2 rounded mb-2"
-        value={address.line1}
-        onChange={(e) =>
-          updateContactInformation({ address: { ...address, line1: e.target.value } })
-        }
-        required
-      />
-      <label className="block mb-1 font-semibold">Address Line 2</label>
-      <input
-        type="text"
-        className="border w-full p-2 rounded mb-2"
-        value={address.line2}
-        onChange={(e) =>
-          updateContactInformation({ address: { ...address, line2: e.target.value } })
-        }
-      />
-      <label className="block mb-1 font-semibold">City</label>
-      <input
-        type="text"
-        className="border w-full p-2 rounded mb-2"
-        value={address.city}
-        onChange={(e) =>
-          updateContactInformation({ address: { ...address, city: e.target.value } })
-        }
-        required
-      />
-      <label className="block mb-1 font-semibold">State</label>
-      <Select
-        options={stateOptions}
-        value={stateOptions.find((opt) => opt.value === address.state) || null}
-        onChange={(option) =>
-          updateContactInformation({ address: { ...address, state: option ? option.value : "" } })
-        }
-        placeholder="Select State"
-        isSearchable
-      />
-      <label className="block mb-1 font-semibold">ZIP</label>
-      <input
-        type="text"
-        className="border w-full p-2 rounded mb-2"
-        value={address.zip}
-        onChange={(e) =>
-          updateContactInformation({ address: { ...address, zip: e.target.value, country: "United States" } })
-        }
-        required
-      />
-      <label className="block mb-1 font-semibold">Country</label>
-      <input
-        type="text"
-        readOnly
-        className="border w-full p-2 rounded mb-4 bg-gray-100"
-        value={"United States"}
-      />
-      <button onClick={handleNext} className="bg-blue-500 text-white px-4 py-2 rounded">
-        Next
-      </button>
-    </div>
+    <VStack spacing={6} align="stretch">
+      <Text fontSize="2xl" fontWeight="bold" mb={2}>
+        Basic Information
+      </Text>
+      <Text color="gray.600" mb={6}>
+        Please provide your personal details to get started
+      </Text>
+
+      {/* Personal Details Section */}
+      <VStack spacing={4} align="stretch">
+        <Text fontWeight="semibold" color="blue.600">
+          Personal Details
+        </Text>
+        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+          <FormControl isInvalid={!!errors.firstName}>
+            <FormLabel>First Name</FormLabel>
+            <Input
+              bg={inputBg}
+              value={personalDetails.firstName}
+              onChange={(e) => {
+                updatePersonalDetails({ firstName: e.target.value });
+                updateContactInformation({ primaryEmail: userEmail ?? "" });
+              }}
+            />
+            <FormErrorMessage>{errors.firstName}</FormErrorMessage>
+          </FormControl>
+
+          <FormControl isInvalid={!!errors.lastName}>
+            <FormLabel>Last Name</FormLabel>
+            <Input
+              bg={inputBg}
+              value={personalDetails.lastName}
+              onChange={(e) => updatePersonalDetails({ lastName: e.target.value })}
+            />
+            <FormErrorMessage>{errors.lastName}</FormErrorMessage>
+          </FormControl>
+        </SimpleGrid>
+
+        <FormControl>
+          <FormLabel>Middle Name (optional)</FormLabel>
+          <Input
+            bg={inputBg}
+            value={personalDetails.middleName}
+            onChange={(e) => updatePersonalDetails({ middleName: e.target.value })}
+          />
+        </FormControl>
+
+        <FormControl isInvalid={!!errors.ageRange}>
+          <FormLabel>Age Range</FormLabel>
+          <Select
+            bg={inputBg}
+            value={personalDetails.ageRange}
+            onChange={(e) => updatePersonalDetails({ ageRange: e.target.value })}
+            placeholder="Select Age Range"
+          >
+            {ageRangeOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+          <FormErrorMessage>{errors.ageRange}</FormErrorMessage>
+        </FormControl>
+      </VStack>
+
+      <Divider my={6} />
+
+      {/* Contact Information Section */}
+      <VStack spacing={4} align="stretch">
+        <Text fontWeight="semibold" color="blue.600">
+          Contact Information
+        </Text>
+
+        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+          <FormControl isInvalid={!!errors.phone}>
+            <FormLabel>Phone Number</FormLabel>
+            <Input
+              bg={inputBg}
+              type="tel"
+              value={contactInformation.primaryPhoneNumber}
+              onChange={(e) => updateContactInformation({ primaryPhoneNumber: e.target.value })}
+            />
+            <FormErrorMessage>{errors.phone}</FormErrorMessage>
+          </FormControl>
+
+          <FormControl>
+            <FormLabel>Email</FormLabel>
+            <Input bg={inputBg} type="email" value={userEmail || ""} readOnly />
+          </FormControl>
+        </SimpleGrid>
+
+        <Text fontWeight="semibold" color="blue.600" mt={4}>
+          Address
+        </Text>
+
+        <FormControl isInvalid={!!errors.addressLine1}>
+          <FormLabel>Address Line 1</FormLabel>
+          <Input
+            bg={inputBg}
+            value={address.line1}
+            onChange={(e) =>
+              updateContactInformation({ address: { ...address, line1: e.target.value } })
+            }
+          />
+          <FormErrorMessage>{errors.addressLine1}</FormErrorMessage>
+        </FormControl>
+
+        <FormControl>
+          <FormLabel>Address Line 2 (optional)</FormLabel>
+          <Input
+            bg={inputBg}
+            value={address.line2}
+            onChange={(e) =>
+              updateContactInformation({ address: { ...address, line2: e.target.value } })
+            }
+          />
+        </FormControl>
+
+        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+          <FormControl isInvalid={!!errors.city}>
+            <FormLabel>City</FormLabel>
+            <Input
+              bg={inputBg}
+              value={address.city}
+              onChange={(e) =>
+                updateContactInformation({ address: { ...address, city: e.target.value } })
+              }
+            />
+            <FormErrorMessage>{errors.city}</FormErrorMessage>
+          </FormControl>
+
+          <FormControl isInvalid={!!errors.state}>
+            <FormLabel>State</FormLabel>
+            <Select
+              bg={inputBg}
+              value={address.state}
+              onChange={(e) =>
+                updateContactInformation({
+                  address: { ...address, state: e.target.value },
+                })
+              }
+              placeholder="Select State"
+            >
+              {statesData.states.map((state) => (
+                <option key={state} value={state}>
+                  {state}
+                </option>
+              ))}
+            </Select>
+            <FormErrorMessage>{errors.state}</FormErrorMessage>
+          </FormControl>
+        </SimpleGrid>
+
+        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+          <FormControl isInvalid={!!errors.zip}>
+            <FormLabel>ZIP</FormLabel>
+            <Input
+              bg={inputBg}
+              value={address.zip}
+              onChange={(e) =>
+                updateContactInformation({
+                  address: { ...address, zip: e.target.value, country: "United States" },
+                })
+              }
+            />
+            <FormErrorMessage>{errors.zip}</FormErrorMessage>
+          </FormControl>
+
+          <FormControl>
+            <FormLabel>Country</FormLabel>
+            <Input bg={inputBg} value="United States" readOnly />
+          </FormControl>
+        </SimpleGrid>
+      </VStack>
+
+      <Button
+        mt={8}
+        size="lg"
+        colorScheme="blue"
+        onClick={handleNext}
+        w={{ base: "100%", md: "auto" }}
+        alignSelf="flex-end"
+      >
+        Continue to Professional Info
+      </Button>
+    </VStack>
   );
 }
