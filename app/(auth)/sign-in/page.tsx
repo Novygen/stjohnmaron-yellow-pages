@@ -34,7 +34,7 @@ export default function SignInPage() {
       const user = userCredential.user;
       dispatch(setUser({ uid: user.uid, email: user.email, displayName: user.displayName }));
       const submitted = await checkMembershipStatus(user.uid);
-      router.push(submitted ? "/dashboard" : "/onboarding");
+      router.push(submitted ? "/member" : "/onboarding");
     } catch (error) {
       alert(error);
     }
@@ -47,7 +47,7 @@ export default function SignInPage() {
       const user = result.user;
       dispatch(setUser({ uid: user.uid, email: user.email, displayName: user.displayName }));
       const submitted = await checkMembershipStatus(user.uid);
-      router.push(submitted ? "/dashboard" : "/onboarding");
+      router.push(submitted ? "/member" : "/onboarding");
     } catch (error) {
       alert(error);
     }

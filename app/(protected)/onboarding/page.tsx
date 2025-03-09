@@ -3,7 +3,6 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   Box,
   Container,
@@ -37,15 +36,10 @@ const steps = [
 
 function OnboardingPage() {
   const [currentStep, setCurrentStep] = useState<number>(1);
-  const router = useRouter();
   const { colorMode } = useColorMode();
   const bgColor = colorMode === "light" ? "gray.50" : "gray.800";
   const sidebarBg = colorMode === "light" ? "blue.500" : "blue.600";
   const stepBg = colorMode === "light" ? "white" : "gray.700";
-
-  async function handleFinish() {
-    router.push("/dashboard");
-  }
 
   function renderStep() {
     switch (currentStep) {
@@ -58,7 +52,7 @@ function OnboardingPage() {
       case 4:
         return <Step4 next={() => setCurrentStep(5)} back={() => setCurrentStep(3)} />;
       case 5:
-        return <Step5 finish={handleFinish} back={() => setCurrentStep(4)} />;
+        return <Step5 back={() => setCurrentStep(4)} />;
       default:
         return <Step1 next={() => setCurrentStep(2)} />;
     }

@@ -17,8 +17,11 @@ import {
 } from "@chakra-ui/react";
 import { FiUser, FiUsers, FiCalendar, FiMessageSquare } from "react-icons/fi";
 import Link from "next/link";
+import withAuth from "@/hoc/withAuth";
 
-export default function MemberDashboard() {
+export default withAuth(MemberDashboard);
+
+function MemberDashboard() {
   const cardBg = useColorModeValue("white", "gray.700");
   const cardHoverBg = useColorModeValue("gray.50", "gray.600");
 

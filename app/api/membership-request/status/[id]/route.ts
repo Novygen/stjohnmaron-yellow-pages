@@ -12,8 +12,8 @@ export async function GET(request: Request, { params }: { params: tParams }) {
 
   await dbConnect();
 
-  // Look up the membership request by the uid stored under member_login.uid
-  const membership = await MembershipRequest.findOne({ "member_login.uid": id });
+  // Look up the membership request by the uid stored under memberLogin.uid
+  const membership = await MembershipRequest.findOne({ "memberLogin.uid": id });
 
   if (membership) {
     return NextResponse.json({ submitted: true });
