@@ -1,35 +1,45 @@
 import { NextResponse } from 'next/server';
-import { withAdminApiAuth, RouteParams } from '@/app/utils/withAdminApiAuth';
+import { withAdminApiAuth } from '@/app/utils/withAdminApiAuth';
 import MembershipRequest from '@/models/MembershipRequest';
 import Member from "@/models/Member";
 import dbConnect from '@/lib/dbConnect';
 
+type tParams = Promise<{ id: string }>;
+
 async function getHandler(
   request: Request,
-  context: RouteParams
+  { params }: { params: tParams }
 ) {
   await dbConnect();
   
-  const requestId = context.params.id as string;
-  const membershipRequest = await MembershipRequest.findById(requestId);
-  
-  if (!membershipRequest) {
+  try {
+    const requestId = (await params).id;
+    const membershipRequest = await MembershipRequest.findById(requestId);
+    
+    if (!membershipRequest) {
+      return NextResponse.json(
+        { error: "Request not found" },
+        { status: 404 }
+      );
+    }
+    
+    return NextResponse.json(membershipRequest);
+  } catch (error) {
+    console.error('Error fetching request:', error);
     return NextResponse.json(
-      { error: 'Membership request not found' },
-      { status: 404 }
+      { error: "Failed to fetch request" },
+      { status: 500 }
     );
   }
-  
-  return NextResponse.json(membershipRequest);
 }
 
 async function patchHandler(
   request: Request,
-  context: RouteParams
+  { params }: { params: tParams }
 ) {
   await dbConnect();
   
-  const requestId = context.params.id as string;
+  const requestId = (await params).id;
   const { action, adminNotes } = await request.json();
   
   try {

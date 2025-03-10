@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
-import { withAdminApiAuth } from "@/app/utils/withAdminApiAuth";
+import { withAdminApiAuth, tParams } from "@/app/utils/withAdminApiAuth";
 import Member from "@/models/Member";
 import MembershipRequest from "@/models/MembershipRequest";
 import dbConnect from "@/lib/dbConnect";
 
-async function getHandler() {
+// Parameters are required by the type but not used in this function
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function getHandler(request: Request, { params }: { params: tParams }) {
   await dbConnect();
   
   try {

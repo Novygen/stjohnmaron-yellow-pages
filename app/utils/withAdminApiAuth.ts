@@ -1,20 +1,15 @@
 import { NextResponse } from 'next/server';
 import { adminAuth } from '@/admin.firebase.server';
 
-export type RouteParams = {
-  params: {
-    [key: string]: string | string[];
-  };
-  searchParams: { [key: string]: string | string[] | undefined };
-};
+export type tParams = Promise<{ id: string }>;
 
 export type ApiHandler = (
   request: Request,
-  context: RouteParams
+  context: { params: tParams }
 ) => Promise<NextResponse>;
 
 export function withAdminApiAuth(handler: ApiHandler): ApiHandler {
-  return async (request: Request, context: RouteParams) => {
+  return async (request: Request, context: { params: tParams }) => {
     try {
       const authHeader = request.headers.get('Authorization');
       if (!authHeader?.startsWith('Bearer ')) {
