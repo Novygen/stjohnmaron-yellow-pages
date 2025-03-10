@@ -52,11 +52,18 @@ const industries: Industry[] = [
   { id: "other", name: "Other" },
 ];
 
+type RouteParams = {
+  params: {
+    id: string;
+  };
+  searchParams: { [key: string]: string | string[] | undefined };
+};
+
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: RouteParams
 ) {
-  const specializationId = await params.id;
+  const specializationId = context.params.id;
   
   // Search through all industries to find the specialization
   for (const industryId in specializationsByIndustry) {

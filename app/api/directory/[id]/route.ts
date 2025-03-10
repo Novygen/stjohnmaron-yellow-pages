@@ -45,16 +45,20 @@ interface MemberResponse {
   };
 }
 
-export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+type RouteParams = {
+  params: {
+    id: string;
+  };
+  searchParams: { [key: string]: string | string[] | undefined };
+};
+
+export async function GET(request: Request, context: RouteParams) {
   try {
     await dbConnect();
-    const { id } = params;
+    const memberId = context.params.id;
     
     // Validate ObjectId format
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!mongoose.Types.ObjectId.isValid(memberId)) {
       return NextResponse.json(
         { error: 'Invalid member ID format' },
         { status: 400 }
@@ -63,7 +67,7 @@ export async function GET(
     
     // Find the member
     const member = await Member.findOne({
-      _id: id,
+      _id: memberId,
       'visibility.profile': 'public',
       'status': 'active',
     });

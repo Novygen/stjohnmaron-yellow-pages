@@ -18,7 +18,7 @@ import { useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import { IMembershipRequest } from '@/models/MembershipRequest';
 import { selectIsAdminAuthenticated } from '@/store/slices/adminSlice';
-import { adminFetch } from '@/utils/adminApi';
+import { adminFetch } from '@/app/utils/adminApi';
 
 interface DashboardStats {
   total: number;

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { withAdminApiAuth } from '@/utils/withAdminApiAuth';
+import { withAdminApiAuth } from '@/app/utils/withAdminApiAuth';
 import MembershipRequest from '@/models/MembershipRequest';
 import dbConnect from '@/lib/dbConnect';
 

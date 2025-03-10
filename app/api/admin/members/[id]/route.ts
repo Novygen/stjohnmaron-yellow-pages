@@ -1,16 +1,15 @@
 import { NextResponse } from "next/server";
-import { withAdminApiAuth } from "@/utils/withAdminApiAuth";
+import { withAdminApiAuth, RouteParams } from "@/app/utils/withAdminApiAuth";
 import Member from "@/models/Member";
 import dbConnect from "@/lib/dbConnect";
-import { ApiContext } from "@/app/utils/withAdminApiAuth";
 
 async function getHandler(
   request: Request,
-  context: ApiContext
+  context: RouteParams
 ) {
   await dbConnect();
-  const params = await context.params;
-  const member = await Member.findById(params.id);
+  const memberId = context.params.id as string;
+  const member = await Member.findById(memberId);
   
   if (!member) {
     return NextResponse.json(
@@ -24,14 +23,14 @@ async function getHandler(
 
 async function patchHandler(
   request: Request,
-  context: ApiContext
+  context: RouteParams
 ) {
   await dbConnect();
-  const params = await context.params;
+  const memberId = context.params.id as string;
   const data = await request.json();
   
   const member = await Member.findByIdAndUpdate(
-    params.id,
+    memberId,
     {
       ...data,
       lastUpdated: new Date(),
@@ -51,13 +50,13 @@ async function patchHandler(
 
 async function deleteHandler(
   request: Request,
-  context: ApiContext
+  context: RouteParams
 ) {
   await dbConnect();
-  const params = await context.params;
+  const memberId = context.params.id as string;
   
   const member = await Member.findByIdAndUpdate(
-    params.id,
+    memberId,
     {
       status: 'inactive',
       lastUpdated: new Date(),

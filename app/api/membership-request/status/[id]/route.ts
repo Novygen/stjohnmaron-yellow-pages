@@ -1,19 +1,18 @@
 import { NextResponse } from "next/server";
-import { withAdminApiAuth } from "@/utils/withAdminApiAuth";
+import { withAdminApiAuth, RouteParams } from "@/app/utils/withAdminApiAuth";
 import MembershipRequest, { IMembershipRequest } from "@/models/MembershipRequest";
 import Member from "@/models/Member";
 import dbConnect from "@/lib/dbConnect";
-import { ApiContext } from "@/app/utils/withAdminApiAuth";
 
 async function patchHandler(
   request: Request,
-  context: ApiContext
+  context: RouteParams
 ) {
   await dbConnect();
   const { action, notes } = await request.json();
-  const params = await context.params;
+  const memberId = context.params.id as string;
   
-  const membershipRequest = await MembershipRequest.findById(params.id);
+  const membershipRequest = await MembershipRequest.findById(memberId);
   if (!membershipRequest) {
     return NextResponse.json(
       { error: "Membership request not found" },
@@ -193,12 +192,11 @@ function mapVisibilitySettings(visibility: {
 
 export async function getHandler(
   request: Request,
-  context: ApiContext
+  context: RouteParams
 ) {
   try {
     await dbConnect();
-    const params = await context.params;
-    const uid = params.id;
+    const uid = context.params.id as string;
     
     // Find any approved requests
     const approvedRequest = await MembershipRequest.findOne({
