@@ -1,48 +1,90 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
-import { verifyToken } from "@/lib/auth";
-import dbConnect from "@/lib/mongoose";
+import { withAdminApiAuth } from "@/utils/withAdminApiAuth";
+import Member from "@/models/Member";
 import MembershipRequest from "@/models/MembershipRequest";
+import dbConnect from "@/lib/dbConnect";
 
-export async function GET(request: Request) {
+async function getHandler() {
+  await dbConnect();
+  
   try {
-    // Verify admin token
-    const decodedToken = await verifyToken(request);
-    if (!decodedToken || typeof decodedToken === 'object' && 'error' in decodedToken) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // Get total members count
+    const totalMembers = await Member.countDocuments({ status: 'active' });
+    
+    // Get new members in last 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const newMembers = await Member.countDocuments({
+      status: 'active',
+      createdAt: { $gte: thirtyDaysAgo }
+    });
 
-    // Verify admin status
-    const customClaims = (decodedToken as any).customClaims || {};
-    if (!customClaims.admin) {
-      return NextResponse.json({ error: "Not authorized as admin" }, { status: 403 });
-    }
+    // Get pending requests count
+    const pendingRequests = await MembershipRequest.countDocuments({
+      isApproved: false,
+      softDeleted: false
+    });
 
-    // Connect to database
-    await dbConnect();
+    // Get requests requiring updates
+    const requestsNeedingUpdates = await MembershipRequest.countDocuments({
+      isApproved: false,
+      softDeleted: true
+    });
 
-    // Get total members (approved membership requests)
-    const totalMembers = await MembershipRequest.countDocuments({ status: "approved" });
+    // Get employment type distribution
+    const employmentStats = await Member.aggregate([
+      { $match: { status: 'active' } },
+      { $unwind: '$employments' },
+      { $match: { 'employments.isActive': true } },
+      {
+        $group: {
+          _id: '$employments.type',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
 
-    // Get pending requests
-    const pendingRequests = await MembershipRequest.countDocuments({ status: "pending" });
+    // Format employment stats
+    const employmentDistribution = employmentStats.reduce((acc, stat) => {
+      acc[stat._id] = stat.count;
+      return acc;
+    }, {} as Record<string, number>);
 
-    // For now, return mock data for events and messages
-    // TODO: Implement actual event and message counting when those features are added
-    const activeEvents = 0;
-    const totalMessages = 0;
+    // Get recent activity
+    const recentActivity = await Promise.all([
+      // Recent approved members
+      Member.find({ status: 'active' })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .select('personalDetails.firstName personalDetails.lastName createdAt'),
+      
+      // Recent pending requests
+      MembershipRequest.find({ isApproved: false, softDeleted: false })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .select('personalDetails.firstName personalDetails.lastName createdAt')
+    ]);
 
     return NextResponse.json({
-      totalMembers,
-      pendingRequests,
-      activeEvents,
-      totalMessages,
+      overview: {
+        totalMembers,
+        newMembers,
+        pendingRequests,
+        requestsNeedingUpdates
+      },
+      employmentDistribution,
+      recentActivity: {
+        recentMembers: recentActivity[0],
+        recentRequests: recentActivity[1]
+      }
     });
   } catch (error) {
-    console.error("Error fetching dashboard stats:", error);
+    console.error('Error fetching dashboard stats:', error);
     return NextResponse.json(
-      { error: "Failed to fetch dashboard stats" },
+      { error: "Failed to fetch dashboard statistics" },
       { status: 500 }
     );
   }
-} 
+}
+
+export const GET = withAdminApiAuth(getHandler); 

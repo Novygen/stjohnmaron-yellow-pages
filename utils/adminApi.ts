@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { store } from '@/store';
 import { selectAdminToken } from '@/store/slices/adminSlice';
 

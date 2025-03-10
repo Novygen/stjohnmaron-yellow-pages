@@ -16,11 +16,12 @@ import {
 } from '@chakra-ui/react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { MdDashboard, MdPeople, MdEvent, MdSettings } from 'react-icons/md';
+import { MdDashboard, MdPeople, MdEvent, MdSettings, MdGroup } from 'react-icons/md';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/admin/dashboard', icon: MdDashboard },
   { label: 'Requests', href: '/admin/requests', icon: MdPeople },
+  { label: 'Members', href: '/admin/members', icon: MdGroup },
   { label: 'Events', href: '/admin/events', icon: MdEvent },
   { label: 'Settings', href: '/admin/settings', icon: MdSettings },
 ];

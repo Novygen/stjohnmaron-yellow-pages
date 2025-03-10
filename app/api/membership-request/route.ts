@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
-import dbConnect from "@/lib/mongoose";
+import dbConnect from "@/lib/dbConnect";
 import MembershipRequest from "@/models/MembershipRequest";
 import { z } from "zod";
 

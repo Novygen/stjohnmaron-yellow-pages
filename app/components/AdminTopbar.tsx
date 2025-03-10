@@ -85,24 +85,18 @@ export default function AdminTopbar({ onMobileMenuClick, onLogout }: TopbarProps
     
     // Always add admin as first breadcrumb if we're in admin section
     if (segments[0] === 'admin') {
-      breadcrumbs.push({
-        label: 'Admin',
-        href: '/admin/dashboard',
-        isLast: segments.length === 1
+      // Add remaining segments
+        segments.slice(1).forEach((segment, index) => {
+        const isLast = index === segments.length - 2; // -2 because we sliced off 'admin'
+        const href = `/${segments.slice(0, index + 2).join('/')}`;
+        
+        breadcrumbs.push({
+          label: segment.charAt(0).toUpperCase() + segment.slice(1),
+          href,
+          isLast
+        });
       });
     }
-
-    // Add remaining segments
-    segments.slice(1).forEach((segment, index) => {
-      const isLast = index === segments.length - 2; // -2 because we sliced off 'admin'
-      const href = `/${segments.slice(0, index + 2).join('/')}`;
-      
-      breadcrumbs.push({
-        label: segment.charAt(0).toUpperCase() + segment.slice(1),
-        href,
-        isLast
-      });
-    });
 
     return breadcrumbs;
   };

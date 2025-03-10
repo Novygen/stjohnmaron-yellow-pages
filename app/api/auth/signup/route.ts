@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // app/api/auth/signup/route.ts
 import { NextResponse } from "next/server";
-import dbConnect from "@/lib/mongoose";
+import dbConnect from '@/lib/dbConnect';
 import { signupSchema } from "@/lib/validators";
 import jwt from "jsonwebtoken";
 

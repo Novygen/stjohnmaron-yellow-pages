@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withAdminApiAuth } from '@/utils/withAdminApiAuth';
-import dbConnect from '@/lib/mongoose';
 import MembershipRequest from '@/models/MembershipRequest';
+import dbConnect from '@/lib/dbConnect';
 
 async function handler() {
   await dbConnect();

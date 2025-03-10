@@ -16,7 +16,7 @@ import {
   Divider,
   Spinner,
 } from '@chakra-ui/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { IMembershipRequest } from '@/models/MembershipRequest';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -35,7 +35,8 @@ interface Specialization {
   industryName: string;
 }
 
-function RequestDetail({ params }: { params: { id: string } }) {
+function RequestDetail({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params);
   const [request, setRequest] = useState<IMembershipRequest | null>(null);
   const [updateNotes, setUpdateNotes] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -68,7 +69,7 @@ function RequestDetail({ params }: { params: { id: string } }) {
     const fetchRequest = async () => {
       try {
         const idToken = await user?.getIdToken();
-        const response = await fetch(`/api/admin/requests/${params.id}`, {
+        const response = await fetch(`/api/admin/requests/${resolvedParams.id}`, {
           headers: {
             'Authorization': `Bearer ${idToken}`,
           },
@@ -115,13 +116,13 @@ function RequestDetail({ params }: { params: { id: string } }) {
     if (user) {
       fetchRequest();
     }
-  }, [params.id, user, toast]);
+  }, [resolvedParams.id, user, toast]);
 
   const handleStatusUpdate = async (action: 'approve' | 'update') => {
     setIsSubmitting(true);
     try {
       const idToken = await user?.getIdToken();
-      const response = await fetch(`/api/admin/requests/${params.id}`, {
+      const response = await fetch(`/api/admin/requests/${resolvedParams.id}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${idToken}`,
