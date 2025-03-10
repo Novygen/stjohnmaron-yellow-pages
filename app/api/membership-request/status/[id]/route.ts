@@ -207,7 +207,7 @@ export async function getHandler(
     });
 
     if (approvedRequest) {
-      return NextResponse.json({ submitted: false });
+      return NextResponse.json({ submitted: true });
     }
 
     // Find the most recent request

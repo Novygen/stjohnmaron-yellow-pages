@@ -12,12 +12,17 @@ import { useAppDispatch } from "@/hooks/useAppDispatch";
 import { setUser } from "@/store/slices/userSlice";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
+import { FcGoogle } from "react-icons/fc";
+import { AiOutlineLoading3Quarters } from "react-icons/ai";
+import { toast } from "react-hot-toast";
+import { FirebaseError } from "firebase/app";
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
   const dispatch = useAppDispatch();
   const router = useRouter();
@@ -33,118 +38,217 @@ export default function SignUpPage() {
 
   const handleEmailSignUp = async (e: FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) {
-      alert("Passwords do not match.");
+    
+    if (!acceptTerms) {
+      toast.error("Please accept the terms and conditions");
       return;
     }
+
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters long");
+      return;
+    }
+
+    setIsLoading(true);
+    
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      dispatch(
-        setUser({
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          token: await user.getIdToken(),
-        })
-      );
-      const submitted = await checkMembershipStatus(user.uid);
-      router.push(submitted ? "/dashboard" : "/onboarding");
-    } catch (error) {
-      alert(error);
+      const token = await user.getIdToken();
+      
+      dispatch(setUser({
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        token
+      }));
+
+      toast.promise(checkMembershipStatus(user.uid), {
+        loading: 'Creating your account...',
+        success: (submitted: boolean) => {
+          router.push(submitted ? "/dashboard" : "/onboarding");
+          return 'Account created successfully!';
+        },
+        error: 'Failed to create account'
+      });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof FirebaseError
+        ? error.code === 'auth/email-already-in-use'
+          ? 'Email already in use'
+          : error.code === 'auth/invalid-email'
+          ? 'Invalid email address'
+          : 'An error occurred during sign up'
+        : 'An error occurred during sign up';
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleGoogleSignUp = async () => {
+    if (!acceptTerms) {
+      toast.error("Please accept the terms and conditions");
+      return;
+    }
+
+    setIsLoading(true);
+    
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
-      dispatch(
-        setUser({
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          token: await user.getIdToken(),
-        })
-      );
-      const submitted = await checkMembershipStatus(user.uid);
-      router.push(submitted ? "/dashboard" : "/onboarding");
-    } catch (error) {
-      alert(error);
+      const token = await user.getIdToken();
+      
+      dispatch(setUser({
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        token
+      }));
+
+      toast.promise(checkMembershipStatus(user.uid), {
+        loading: 'Creating your account...',
+        success: (submitted: boolean) => {
+          router.push(submitted ? "/dashboard" : "/onboarding");
+          return 'Account created successfully!';
+        },
+        error: 'Failed to create account'
+      });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof FirebaseError && error.code === 'auth/popup-closed-by-user'
+        ? 'Sign up cancelled'
+        : 'An error occurred during sign up';
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <main className="flex flex-col md:flex-row min-h-screen">
-      <div className="flex-1 bg-[#bbbfbe] text-white flex flex-col justify-center p-8">
-        <div className="max-w-md mx-auto">
-          <h1 className="text-2xl font-bold mb-4">St John Maron | Member Platform</h1>
-          <h2 className="text-xl mb-6">
-            Your place to network.
-            <br />
-            Explore. Connect
-          </h2>
-          <Image src="/sign_up.svg" alt="Board Illustration" width={400} height={300} />
-          <p className="mt-6 text-sm opacity-90">
-            Build and manage your profile. Connect with fellow members.
-          </p>
-        </div>
-      </div>
-      <div className="flex-1 bg-gray-50 flex items-center justify-center p-8">
-        <form onSubmit={handleEmailSignUp} className="w-full max-w-sm bg-white p-6 rounded shadow">
-          <h2 className="text-xl font-bold mb-4">Join our Member Platform</h2>
+    <main className="flex min-h-screen">
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="w-full max-w-md space-y-8">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold tracking-tight text-gray-900">
+              Create your account
+            </h2>
+            <p className="mt-2 text-sm text-gray-600">
+              Already have an account?{' '}
+              <Link href="/sign-in" className="font-medium text-blue-600 hover:text-blue-500">
+                Sign in
+              </Link>
+            </p>
+          </div>
+
           <button
             type="button"
             onClick={handleGoogleSignUp}
-            className="w-full bg-blue-500 text-white py-2 rounded mb-6 hover:bg-blue-600 transition-colors"
+            disabled={isLoading}
+            className="relative w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg text-base font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
+            <FcGoogle className="w-5 h-5" />
             Continue with Google
           </button>
-          <div className="text-center text-gray-400 text-sm mb-4">OR</div>
-          <label className="block mb-1 text-gray-700 text-sm">Email Address</label>
-          <input
-            type="email"
-            className="mb-4 w-full p-2 border border-gray-300 rounded"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            required
-          />
-          <label className="block mb-1 text-gray-700 text-sm">Password</label>
-          <input
-            type="password"
-            className="mb-4 w-full p-2 border border-gray-300 rounded"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="********"
-            required
-          />
-          <label className="block mb-1 text-gray-700 text-sm">Confirm Password</label>
-          <input
-            type="password"
-            className="mb-4 w-full p-2 border border-gray-300 rounded"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            placeholder="********"
-            required
-          />
-          <div className="flex items-center justify-between mb-4">
-            <label className="flex items-center text-sm">
-              <input type="checkbox" className="mr-2" />
-              Remember me
-            </label>
-            <Link href="/sign-in" className="text-blue-600 text-sm">
-              Have an account?
-            </Link>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">Or continue with</span>
+            </div>
           </div>
-          <button
-            type="submit"
-            className="bg-green-600 text-white w-full py-2 rounded hover:bg-green-700 transition-colors"
-          >
-            Sign Up
-          </button>
-        </form>
+
+          <form onSubmit={handleEmailSignUp} className="mt-8 space-y-6">
+            <div className="space-y-4 rounded-md">
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                  Email address
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="you@example.com"
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="••••••••"
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700">
+                  Confirm password
+                </label>
+                <input
+                  id="confirm-password"
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="••••••••"
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center">
+              <input
+                id="accept-terms"
+                type="checkbox"
+                checked={acceptTerms}
+                onChange={(e) => setAcceptTerms(e.target.checked)}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                disabled={isLoading}
+              />
+              <label htmlFor="accept-terms" className="ml-2 block text-sm text-gray-900">
+                I agree to the{' '}
+                <Link href="/terms" className="font-medium text-blue-600 hover:text-blue-500">
+                  Terms of Service
+                </Link>{' '}
+                and{' '}
+                <Link href="/privacy" className="font-medium text-blue-600 hover:text-blue-500">
+                  Privacy Policy
+                </Link>
+              </label>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? (
+                <AiOutlineLoading3Quarters className="w-5 h-5 animate-spin" />
+              ) : (
+                'Create account'
+              )}
+            </button>
+          </form>
+        </div>
       </div>
     </main>
   );

@@ -53,12 +53,9 @@ export default function Step5({ back }: Step5Props) {
       try {
         console.log("Executing API call");
         const response = await submitMembershipRequest();
-        if (response.status === 200) {
-          setSubmissionStatus("success");
-          console.log("API response:", response);
-        } else {
-          setSubmissionStatus("error");
-        }
+        
+        setSubmissionStatus("success");
+        console.log("API response:", response);
         
         // If component is unmounted, don't update state
         if (isUnmountedRef.current) return;
