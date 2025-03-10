@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import MembershipRequest from "@/models/MembershipRequest";
@@ -68,15 +67,31 @@ const membershipRequestSchema = z.object({
     displayInYellowPages: z.boolean(),
     displayPhonePublicly: z.boolean(),
   }),
-  isApproved: z.boolean().optional().default(false),
-  softDeleted: z.boolean().optional().default(false),
+  visibility: z.object({
+    profile: z.string(),
+    contact: z.object({
+      email: z.string(),
+      phone: z.string(),
+      address: z.string(),
+    }),
+    employment: z.object({
+      current: z.string(),
+      history: z.string(),
+    }),
+    social: z.string(),
+    phoneNumber: z.string().optional(),
+  }).optional(),
+  isApproved: z.boolean().default(false),
+  softDeleted: z.boolean().optional(),
   lastModifiedBy: z.string().optional(),
 });
 
 export async function POST(request: Request) {
-  await dbConnect();
   try {
+    await dbConnect();
     const body = await request.json();
+    
+    // Parse and validate the request body
     const parsed = membershipRequestSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
@@ -84,17 +99,95 @@ export async function POST(request: Request) {
         { status: 400, statusText: "Bad Request" }
       );
     }
-    const membershipData = parsed.data;
-    const membershipRequest = await MembershipRequest.create(membershipData);
-    return NextResponse.json(membershipRequest, {
-      status: 201,
-      statusText: "Created",
+    
+    const data = parsed.data;
+
+    // Check if user already has a pending or approved request
+    const existingRequest = await MembershipRequest.findOne({
+      'memberLogin.uid': data.memberLogin.uid,
+      $or: [
+        { isApproved: true },
+        { isApproved: false, softDeleted: { $ne: true } }
+      ]
     });
-  } catch (err: any) {
-    console.error(err);
-    return NextResponse.json(
-      { error: err.message },
-      { status: 500, statusText: "Internal Server Error" }
-    );
+
+    if (existingRequest) {
+      console.log(`Duplicate request for user ${data.memberLogin.uid} - request already exists`);
+      return NextResponse.json(
+        { message: "A membership request already exists for this user" },
+        { status: 200 }
+      );
+    }
+
+    // Ensure visibility settings are in public/private format
+    // Create default visibility settings if not provided
+    if (!data.visibility) {
+      const phoneVisibility = data.privacyConsent.displayPhonePublicly ? 'public' : 'private';
+      const displayInYellowPages = data.privacyConsent.displayInYellowPages ? 'public' : 'private';
+      
+      data.visibility = {
+        profile: 'public',
+        contact: {
+          email: displayInYellowPages,
+          phone: phoneVisibility,
+          address: 'private',
+        },
+        employment: {
+          current: displayInYellowPages,
+          history: 'private',
+        },
+        social: displayInYellowPages,
+        phoneNumber: phoneVisibility
+      };
+    } else {
+      // Process existing visibility settings
+      const mapValue = (value: string) => value === 'members' ? 'private' : (value === 'public' || value === 'private' ? value : 'private');
+      
+      if (data.visibility.profile) {
+        data.visibility.profile = mapValue(data.visibility.profile);
+      }
+      
+      if (data.visibility.social) {
+        data.visibility.social = mapValue(data.visibility.social);
+      }
+      
+      if (data.visibility.contact) {
+        if (data.visibility.contact.email) {
+          data.visibility.contact.email = mapValue(data.visibility.contact.email);
+        }
+        if (data.visibility.contact.phone) {
+          data.visibility.contact.phone = mapValue(data.visibility.contact.phone);
+        }
+        if (data.visibility.contact.address) {
+          data.visibility.contact.address = mapValue(data.visibility.contact.address);
+        }
+      }
+      
+      if (data.visibility.employment) {
+        if (data.visibility.employment.current) {
+          data.visibility.employment.current = mapValue(data.visibility.employment.current);
+        }
+        if (data.visibility.employment.history) {
+          data.visibility.employment.history = mapValue(data.visibility.employment.history);
+        }
+      }
+      
+      if (data.visibility.phoneNumber) {
+        data.visibility.phoneNumber = mapValue(data.visibility.phoneNumber);
+      }
+    }
+
+    // Create new membership request
+    const membershipRequest = new MembershipRequest(data);
+    await membershipRequest.save();
+
+    return NextResponse.json(membershipRequest, { status: 201 });
+  } catch (error) {
+    console.error("Error creating membership request:", error);
+    let errorMessage = "Failed to create membership request";
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

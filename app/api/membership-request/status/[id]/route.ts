@@ -11,8 +11,9 @@ async function patchHandler(
 ) {
   await dbConnect();
   const { action, notes } = await request.json();
+  const params = await context.params;
   
-  const membershipRequest = await MembershipRequest.findById(context.params.id);
+  const membershipRequest = await MembershipRequest.findById(params.id);
   if (!membershipRequest) {
     return NextResponse.json(
       { error: "Membership request not found" },
@@ -29,10 +30,23 @@ async function patchHandler(
         contactInformation: membershipRequest.contactInformation,
         employments: createEmploymentsFromRequest(membershipRequest),
         socialPresence: membershipRequest.socialPresence,
-        visibility: createDefaultVisibility(),
+        visibility: membershipRequest.privacyConsent ? mapVisibilitySettings({
+          profile: 'public',
+          contact: {
+            email: membershipRequest.privacyConsent.displayInYellowPages ? 'public' : 'private',
+            phone: membershipRequest.privacyConsent.displayPhonePublicly ? 'public' : 'private',
+            address: 'private',
+          },
+          employment: {
+            current: 'public',
+            history: 'private',
+          },
+          social: 'public'
+        }) : createDefaultVisibility(),
         status: 'active',
         memberSince: new Date(),
         lastUpdated: new Date(),
+        lastUpdatedBy: 'system'
       });
 
       await member.save();
@@ -70,8 +84,12 @@ async function patchHandler(
 function createEmploymentsFromRequest(request: IMembershipRequest) {
   const employments = [];
   const statuses = request.professionalInfo.employmentStatus.status.split(',');
+  console.log('Employment statuses:', statuses);
+  console.log('Professional info:', JSON.stringify(request.professionalInfo, null, 2));
 
+  // Handle employed status
   if (statuses.includes('employed') && request.professionalInfo.employmentDetails) {
+    console.log('Adding employed status');
     employments.push({
       type: 'employed' as const,
       details: {
@@ -84,7 +102,9 @@ function createEmploymentsFromRequest(request: IMembershipRequest) {
     });
   }
 
+  // Handle business owner status
   if (statuses.includes('business_owner') && request.professionalInfo.business) {
+    console.log('Adding business owner status');
     employments.push({
       type: 'business_owner' as const,
       details: {
@@ -99,7 +119,9 @@ function createEmploymentsFromRequest(request: IMembershipRequest) {
     });
   }
 
+  // Handle student status
   if (statuses.includes('student') && request.professionalInfo.student) {
+    console.log('Adding student status');
     employments.push({
       type: 'student' as const,
       details: {
@@ -112,6 +134,7 @@ function createEmploymentsFromRequest(request: IMembershipRequest) {
     });
   }
 
+  console.log('Final employments array:', JSON.stringify(employments, null, 2));
   return employments;
 }
 
@@ -120,15 +143,51 @@ function createDefaultVisibility() {
   return {
     profile: 'public' as const,
     contact: {
-      email: 'members' as const,
-      phone: 'members' as const,
-      address: 'members' as const,
+      email: 'private' as const,
+      phone: 'private' as const,
+      address: 'private' as const,
     },
     employment: {
       current: 'public' as const,
-      history: 'members' as const,
+      history: 'private' as const,
     },
-    social: 'public' as const,
+    social: 'public' as const
+  };
+}
+
+// Helper function to map existing visibility settings
+function mapVisibilitySettings(visibility: {
+  profile: string;
+  contact: {
+    email: string;
+    phone: string;
+    address: string;
+  };
+  employment: {
+    current: string;
+    history: string;
+  };
+  social: string;
+  phoneNumber?: string;
+}) {
+  const mapValue = (value: string) => value === 'members' ? 'private' : value;
+  
+  // Ensure phone visibility is consistent
+  const phoneVisibility = visibility.phoneNumber || visibility.contact.phone;
+  
+  return {
+    profile: mapValue(visibility.profile),
+    contact: {
+      email: mapValue(visibility.contact.email),
+      phone: mapValue(phoneVisibility),
+      address: mapValue(visibility.contact.address),
+    },
+    employment: {
+      current: mapValue(visibility.employment.current),
+      history: mapValue(visibility.employment.history),
+    },
+    social: mapValue(visibility.social),
+    phoneNumber: mapValue(phoneVisibility)
   };
 }
 
@@ -138,7 +197,8 @@ export async function getHandler(
 ) {
   try {
     await dbConnect();
-    const uid = await context.params.id;
+    const params = await context.params;
+    const uid = params.id;
     
     // Find any approved requests
     const approvedRequest = await MembershipRequest.findOne({

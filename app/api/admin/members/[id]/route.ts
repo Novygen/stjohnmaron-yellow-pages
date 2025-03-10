@@ -9,7 +9,8 @@ async function getHandler(
   context: ApiContext
 ) {
   await dbConnect();
-  const member = await Member.findById(context.params.id);
+  const params = await context.params;
+  const member = await Member.findById(params.id);
   
   if (!member) {
     return NextResponse.json(
@@ -26,10 +27,11 @@ async function patchHandler(
   context: ApiContext
 ) {
   await dbConnect();
+  const params = await context.params;
   const data = await request.json();
   
   const member = await Member.findByIdAndUpdate(
-    context.params.id,
+    params.id,
     {
       ...data,
       lastUpdated: new Date(),
@@ -52,9 +54,10 @@ async function deleteHandler(
   context: ApiContext
 ) {
   await dbConnect();
+  const params = await context.params;
   
   const member = await Member.findByIdAndUpdate(
-    context.params.id,
+    params.id,
     {
       status: 'inactive',
       lastUpdated: new Date(),

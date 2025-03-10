@@ -53,36 +53,74 @@ async function patchHandler(
 
     if (action === 'approve') {
       // Create new member from request
+      const employments = [];
+      const statuses = membershipRequest.professionalInfo.employmentStatus.status.split(',');
+      
+      // Handle employed status
+      if (statuses.includes('employed') && membershipRequest.professionalInfo.employmentDetails) {
+        employments.push({
+          type: 'employed',
+          details: {
+            companyName: membershipRequest.professionalInfo.employmentDetails.companyName,
+            jobTitle: membershipRequest.professionalInfo.employmentDetails.jobTitle,
+            specialization: membershipRequest.professionalInfo.employmentDetails.specialization,
+          },
+          isActive: true,
+          startDate: new Date(),
+        });
+      }
+      
+      // Handle business owner status
+      if (statuses.includes('business_owner') && membershipRequest.professionalInfo.business) {
+        employments.push({
+          type: 'business_owner',
+          details: {
+            businessName: membershipRequest.professionalInfo.business.businessName,
+            industry: membershipRequest.professionalInfo.business.industry,
+            description: membershipRequest.professionalInfo.business.description,
+            website: membershipRequest.professionalInfo.business.website,
+            phoneNumber: membershipRequest.professionalInfo.business.phoneNumber,
+          },
+          isActive: true,
+          startDate: new Date(),
+        });
+      }
+      
+      // Handle student status
+      if (statuses.includes('student') && membershipRequest.professionalInfo.student) {
+        employments.push({
+          type: 'student',
+          details: {
+            schoolName: membershipRequest.professionalInfo.student.schoolName,
+            fieldOfStudy: membershipRequest.professionalInfo.student.fieldOfStudy,
+            expectedGraduationYear: membershipRequest.professionalInfo.student.expectedGraduationYear,
+          },
+          isActive: true,
+          startDate: new Date(),
+        });
+      }
+
       const newMember = new Member({
         uid: membershipRequest.memberLogin.uid,
         personalDetails: membershipRequest.personalDetails,
         contactInformation: membershipRequest.contactInformation,
-        employments: [
-          {
-            type: membershipRequest.professionalInfo.employmentStatus.status.includes('employed') ? 'employed' :
-                  membershipRequest.professionalInfo.employmentStatus.status.includes('business_owner') ? 'business_owner' :
-                  membershipRequest.professionalInfo.employmentStatus.status.includes('student') ? 'student' : 'other',
-            details: membershipRequest.professionalInfo.employmentDetails || 
-                    membershipRequest.professionalInfo.business ||
-                    membershipRequest.professionalInfo.student || {},
-            isActive: true,
-            startDate: new Date()
-          }
-        ],
+        employments: employments,
         visibility: {
-          profile: 'members',
+          profile: membershipRequest.privacyConsent.displayInYellowPages ? 'public' : 'private',
           contact: {
-            email: 'members',
-            phone: 'members',
+            email: membershipRequest.privacyConsent.displayInYellowPages ? 'public' : 'private',
+            phone: membershipRequest.privacyConsent.displayPhonePublicly ? 'public' : 'private',
             address: 'private'
           },
           employment: {
-            current: 'members',
-            history: 'members'
+            current: 'public',
+            history: 'private'
           },
-          social: 'members'
+          social: membershipRequest.privacyConsent.displayInYellowPages ? 'public' : 'private',
+          phoneNumber: membershipRequest.privacyConsent.displayPhonePublicly ? 'public' : 'private'
         },
         status: 'active',
+        memberSince: new Date(),
         lastUpdated: new Date(),
         lastUpdatedBy: 'system'
       });

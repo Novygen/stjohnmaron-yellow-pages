@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 interface Specialization {
   id: string;
@@ -52,25 +53,26 @@ const industries: Industry[] = [
 ];
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const specializationId = params.id;
+  const specializationId = await params.id;
   
   // Search through all industries to find the specialization
   for (const industryId in specializationsByIndustry) {
     const specializations = specializationsByIndustry[industryId];
-    const specialization = specializations.find((spec: Specialization) => spec.id === specializationId);
-    
-    if (specialization) {
-      const industry = industries.find(ind => ind.id === specialization.industryId);
-      return NextResponse.json({
-        ...specialization,
-        industryName: industry?.name || specialization.industryId
-      });
+    for (const specialization of specializations) {
+      if (specialization.id === specializationId) {
+        const industry = industries.find(ind => ind.id === specialization.industryId);
+        return NextResponse.json({
+          ...specialization,
+          industryName: industry?.name || specialization.industryId
+        });
+      }
     }
   }
 
+  // If specialization not found
   return NextResponse.json(
     { error: "Specialization not found" },
     { status: 404 }

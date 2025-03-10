@@ -12,6 +12,7 @@ import {
   ISocialPresence,
   IPrivacyConsent,
 } from "@/models/MembershipRequest";
+import { IVisibility } from "@/models/Member";
 
 export interface MembershipRequestData {
   memberLogin: IMemberLogin;
@@ -20,6 +21,7 @@ export interface MembershipRequestData {
   professionalInfo: IProfessionalInfo;
   socialPresence: ISocialPresence;
   privacyConsent: IPrivacyConsent;
+  visibility: IVisibility;
   isApproved: boolean;
   softDeleted?: boolean;
   lastModifiedBy?: string;
@@ -48,6 +50,20 @@ export const defaultMembershipRequest: MembershipRequestData = {
     internalConsent: false,
     displayInYellowPages: false,
     displayPhonePublicly: false,
+  },
+  visibility: {
+    profile: 'public',
+    contact: {
+      email: 'private',
+      phone: 'private',
+      address: 'private',
+    },
+    employment: {
+      current: 'public',
+      history: 'private',
+    },
+    social: 'public',
+    phoneNumber: 'private'
   },
   isApproved: false,
   softDeleted: false,
@@ -122,11 +138,30 @@ export const MembershipRequestProvider = ({ children }: { children: ReactNode })
   const submitMembershipRequest = async () => {
     setLoading(true);
     try {
+      // Set phoneNumber visibility based on displayPhonePublicly
+      const phoneVisibility = membershipData.privacyConsent.displayPhonePublicly ? 'public' : 'private';
+      
+      // Create a new data object with properly set visibility
+      const dataToSubmit = {
+        ...membershipData,
+        visibility: {
+          ...membershipData.visibility,
+          contact: {
+            ...membershipData.visibility.contact,
+            phone: phoneVisibility,  // Set phone visibility in contact
+          },
+          phoneNumber: phoneVisibility  // Also set the standalone phoneNumber field
+        }
+      };
+
+      console.log('Submitting membership request with data:', JSON.stringify(dataToSubmit, null, 2));
+      
       const res = await fetch("/api/membership-request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(membershipData),
+        body: JSON.stringify(dataToSubmit),
       });
+      
       const result = await res.json();
       if (!res.ok) {
         let errorMessage = "Submission failed";

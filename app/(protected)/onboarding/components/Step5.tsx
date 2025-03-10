@@ -1,7 +1,7 @@
 // app/(protected)/onboarding/components/Step5.tsx
 "use client";
 
-import React, { useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   VStack,
   Text,
@@ -25,17 +25,28 @@ interface Step5Props {
 export default function Step5({ back }: Step5Props) {
   const router = useRouter();
   const { submitMembershipRequest } = useMembershipRequest();
-  const [submissionStatus, setSubmissionStatus] = React.useState<"idle" | "submitting" | "success" | "error">("idle");
-  const [submissionError, setSubmissionError] = React.useState<string>("");
+  const [submissionStatus, setSubmissionStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [submissionError, setSubmissionError] = useState<string>("");
+  const submittedRef = useRef(false);
 
-  const submitRequest = useCallback(async () => {
-    if (submissionStatus !== "idle") return;
+  // This runs outside of useEffect to avoid double-triggering in React strict mode
+  const handleInitialSubmit = async () => {
+    // Return early if already submitted
+    if (submittedRef.current) return;
     
+    // Immediately mark as submitted to prevent concurrent calls
+    submittedRef.current = true;
     setSubmissionStatus("submitting");
+
     try {
+      // Add a small delay to ensure submittedRef is updated
+      await new Promise(resolve => setTimeout(resolve, 10));
+      console.log("Submitting membership request - has been submitted:", submittedRef.current);
+      
       await submitMembershipRequest();
       setSubmissionStatus("success");
     } catch (error) {
+      // If error occurs, allow resubmission
       setSubmissionStatus("error");
       if (error instanceof Error) {
         setSubmissionError(error.message);
@@ -43,11 +54,14 @@ export default function Step5({ back }: Step5Props) {
         setSubmissionError("An unexpected error occurred");
       }
     }
-  }, [submitMembershipRequest, submissionStatus]);
+  };
 
+  // Call immediately and only once
   useEffect(() => {
-    submitRequest();
-  }, [submitRequest]);
+    handleInitialSubmit();
+    // Empty dependency array - runs only on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (submissionStatus === "idle" || submissionStatus === "submitting") {
     return (
@@ -120,8 +134,9 @@ export default function Step5({ back }: Step5Props) {
         <Button 
           colorScheme="blue" 
           onClick={() => {
+            submittedRef.current = false;
             setSubmissionStatus("idle");
-            submitRequest();
+            handleInitialSubmit();
           }}
         >
           Try Again

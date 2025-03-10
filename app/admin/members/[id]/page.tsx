@@ -34,7 +34,7 @@ import { AddIcon, DeleteIcon } from '@chakra-ui/icons';
 import mongoose from 'mongoose';
 
 type PlainMember = Omit<IMember, keyof mongoose.Document>;
-type VisibilityOption = 'public' | 'members' | 'private';
+type VisibilityOption = 'public' | 'private';
 
 function MemberDetailsPage() {
   const [member, setMember] = useState<PlainMember | null>(null);
@@ -600,7 +600,6 @@ function MemberDetailsPage() {
                           onChange={(e) => handleVisibilityChange('profile', e.target.value as VisibilityOption)}
                         >
                           <option value="public">Public</option>
-                          <option value="members">Members Only</option>
                           <option value="private">Private</option>
                         </Select>
                       </FormControl>
@@ -608,7 +607,7 @@ function MemberDetailsPage() {
 
                     <GridItem>
                       <FormControl>
-                        <FormLabel>Contact Information Visibility</FormLabel>
+                        <FormLabel>Email Visibility</FormLabel>
                         <Select
                           value={member.visibility.contact.email}
                           onChange={(e) =>
@@ -616,7 +615,6 @@ function MemberDetailsPage() {
                           }
                         >
                           <option value="public">Public</option>
-                          <option value="members">Members Only</option>
                           <option value="private">Private</option>
                         </Select>
                       </FormControl>
@@ -624,7 +622,22 @@ function MemberDetailsPage() {
 
                     <GridItem>
                       <FormControl>
-                        <FormLabel>Employment Visibility</FormLabel>
+                        <FormLabel>Phone Number Visibility</FormLabel>
+                        <Select
+                          value={member.visibility.contact.phone}
+                          onChange={(e) =>
+                            handleVisibilityChange('contact', e.target.value as VisibilityOption, 'phone')
+                          }
+                        >
+                          <option value="public">Public</option>
+                          <option value="private">Private</option>
+                        </Select>
+                      </FormControl>
+                    </GridItem>
+
+                    <GridItem>
+                      <FormControl>
+                        <FormLabel>Current Employment Visibility</FormLabel>
                         <Select
                           value={member.visibility.employment.current}
                           onChange={(e) =>
@@ -632,7 +645,21 @@ function MemberDetailsPage() {
                           }
                         >
                           <option value="public">Public</option>
-                          <option value="members">Members Only</option>
+                          <option value="private">Private</option>
+                        </Select>
+                      </FormControl>
+                    </GridItem>
+
+                    <GridItem>
+                      <FormControl>
+                        <FormLabel>Employment History Visibility</FormLabel>
+                        <Select
+                          value={member.visibility.employment.history}
+                          onChange={(e) =>
+                            handleVisibilityChange('employment', e.target.value as VisibilityOption, 'history')
+                          }
+                        >
+                          <option value="public">Public</option>
                           <option value="private">Private</option>
                         </Select>
                       </FormControl>
@@ -646,7 +673,6 @@ function MemberDetailsPage() {
                           onChange={(e) => handleVisibilityChange('social', e.target.value as VisibilityOption)}
                         >
                           <option value="public">Public</option>
-                          <option value="members">Members Only</option>
                           <option value="private">Private</option>
                         </Select>
                       </FormControl>

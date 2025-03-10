@@ -24,17 +24,18 @@ export interface IEmployment {
 }
 
 export interface IVisibility {
-  profile: 'public' | 'members' | 'private';
+  profile: 'public' | 'private';
   contact: {
-    email: 'public' | 'members' | 'private';
-    phone: 'public' | 'members' | 'private';
-    address: 'public' | 'members' | 'private';
+    email: 'public' | 'private';
+    phone: 'public' | 'private';
+    address: 'public' | 'private';
   };
   employment: {
-    current: 'public' | 'members' | 'private';
-    history: 'public' | 'members' | 'private';
+    current: 'public' | 'private';
+    history: 'public' | 'private';
   };
-  social: 'public' | 'members' | 'private';
+  social: 'public' | 'private';
+  phoneNumber: 'public' | 'private';
 }
 
 export interface IMember extends Document {
@@ -101,43 +102,48 @@ const EmploymentSchema = new Schema<IEmployment>({
 const VisibilitySchema = new Schema<IVisibility>({
   profile: { 
     type: String, 
-    enum: ['public', 'members', 'private'],
+    enum: ['public', 'private'],
     default: 'public'
   },
   contact: {
     email: { 
       type: String, 
-      enum: ['public', 'members', 'private'],
-      default: 'members'
+      enum: ['public', 'private'],
+      default: 'private'
     },
     phone: { 
       type: String, 
-      enum: ['public', 'members', 'private'],
-      default: 'members'
+      enum: ['public', 'private'],
+      default: 'private'
     },
     address: { 
       type: String, 
-      enum: ['public', 'members', 'private'],
-      default: 'members'
+      enum: ['public', 'private'],
+      default: 'private'
     },
   },
   employment: {
     current: { 
       type: String, 
-      enum: ['public', 'members', 'private'],
+      enum: ['public', 'private'],
       default: 'public'
     },
     history: { 
       type: String, 
-      enum: ['public', 'members', 'private'],
-      default: 'members'
+      enum: ['public', 'private'],
+      default: 'private'
     },
   },
   social: { 
     type: String, 
-    enum: ['public', 'members', 'private'],
+    enum: ['public', 'private'],
     default: 'public'
   },
+  phoneNumber: {
+    type: String,
+    enum: ['public', 'private'],
+    default: 'private'
+  }
 });
 
 const MemberSchema = new Schema<IMember>({

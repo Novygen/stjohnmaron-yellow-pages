@@ -23,7 +23,7 @@ interface Step4Props {
 }
 
 export default function Step4({ next, back }: Step4Props) {
-  const { membershipData, updatePrivacyConsent } = useMembershipRequest();
+  const { membershipData, updatePrivacyConsent, setMembershipData } = useMembershipRequest();
   const [localPrivacy, setLocalPrivacy] = useState(membershipData.privacyConsent);
   const [showError, setShowError] = useState(false);
 
@@ -37,7 +37,32 @@ export default function Step4({ next, back }: Step4Props) {
       return;
     }
     setShowError(false);
+    
+    // Update privacy consent
     updatePrivacyConsent(localPrivacy);
+
+    // Update visibility settings based on privacy choices
+    const visibility = {
+      profile: 'public' as const,
+      contact: {
+        email: (localPrivacy.displayInYellowPages ? 'public' : 'private') as 'public' | 'private',
+        phone: (localPrivacy.displayPhonePublicly ? 'public' : 'private') as 'public' | 'private',
+        address: 'private' as const,
+      },
+      employment: {
+        current: 'public' as const,
+        history: 'private' as const,
+      },
+      social: 'public' as const,
+      phoneNumber: (localPrivacy.displayPhonePublicly ? 'public' : 'private') as 'public' | 'private'
+    };
+
+    // Update the membership data with new visibility settings
+    setMembershipData(prev => ({
+      ...prev,
+      visibility
+    }));
+    
     next();
   };
 
