@@ -193,8 +193,7 @@ function mapVisibilitySettings(visibility: {
 }
 
 export async function getHandler(
-  request: NextRequest,
-  { params }: { params: tParams }
+  request: NextRequest, { params }: { params: tParams }
 ) {
   try {
     await dbConnect();
@@ -231,7 +230,9 @@ export async function getHandler(
 export const GET = async (
   request: NextRequest,
   context: { params: tParams }
-) => getHandler(request, context);
+) => {
+  return getHandler(request, context);
+};
 
 export const PATCH = withAdminApiAuth(async (
   request: NextRequest,

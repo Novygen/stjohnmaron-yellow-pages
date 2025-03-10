@@ -208,7 +208,7 @@ export default function Step2({ next, back }: Step2Props) {
       </SimpleGrid>
 
       <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-        <FormControl>
+        <FormControl isRequired isInvalid={!!errors.industry}>
           <FormLabel>Industry</FormLabel>
           <Select
             bg={inputBg}
