@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { withAdminApiAuth } from '@/app/utils/withAdminApiAuth';
 import MembershipRequest from '@/models/MembershipRequest';
 import Member from "@/models/Member";
 import dbConnect from '@/lib/dbConnect';
@@ -155,5 +154,5 @@ async function patchHandler(
   }
 }
 
-export const GET = withAdminApiAuth(getHandler);
-export const PATCH = withAdminApiAuth(patchHandler); 
+export const GET = getHandler;
+export const PATCH = patchHandler; 
