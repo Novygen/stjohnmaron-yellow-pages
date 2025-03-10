@@ -57,6 +57,7 @@ export default function DoNotSellPage() {
         comments: "",
       });
     } catch (error) {
+      console.error("Error submitting opt-out request:", error);
       toast({
         title: "Error",
         description: "There was an error submitting your request. Please try again.",

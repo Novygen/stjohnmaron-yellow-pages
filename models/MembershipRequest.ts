@@ -1,5 +1,6 @@
 // models/MembershipRequest.ts
 import mongoose, { Document, Schema } from "mongoose";
+import { IVisibility } from './Member'; // Import from Member model
 
 // Login information
 export interface IMemberLogin {
@@ -82,9 +83,12 @@ export interface IMembershipRequest extends Document {
   professionalInfo: IProfessionalInfo;
   socialPresence: ISocialPresence;
   privacyConsent: IPrivacyConsent;
+  visibility?: IVisibility;
   isApproved: boolean;
   softDeleted?: boolean;
   lastModifiedBy?: string;
+  notes?: string;
+  requestId?: string; // Unique ID for deduplication
 }
 
 const MembershipRequestSchema = new Schema<IMembershipRequest>(
@@ -173,12 +177,18 @@ const MembershipRequestSchema = new Schema<IMembershipRequest>(
     },
     socialPresence: { type: Object, required: true },
     privacyConsent: { type: Object, required: true },
+    visibility: { type: mongoose.Schema.Types.Mixed },
     isApproved: { type: Boolean, default: false },
     softDeleted: { type: Boolean, default: false },
-    lastModifiedBy: { type: String }
+    lastModifiedBy: { type: String },
+    notes: { type: String },
+    requestId: { type: String },
   },
   { timestamps: true }
 );
+
+// Add a unique index on requestId to prevent duplicates
+MembershipRequestSchema.index({ requestId: 1 }, { unique: true, sparse: true });
 
 export default mongoose.models.MembershipRequest ||
   mongoose.model<IMembershipRequest>("MembershipRequest", MembershipRequestSchema);

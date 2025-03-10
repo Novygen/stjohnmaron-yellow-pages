@@ -102,21 +102,41 @@ export async function POST(request: Request) {
     
     const data = parsed.data;
 
-    // Check if user already has a pending or approved request
-    const existingRequest = await MembershipRequest.findOne({
-      'memberLogin.uid': data.memberLogin.uid,
-      $or: [
-        { isApproved: true },
-        { isApproved: false, softDeleted: { $ne: true } }
-      ]
+    // Generate a unique request ID based on user ID to enforce uniqueness
+    const requestId = `${data.memberLogin.uid}_${Date.now()}`;
+    
+    // Check if user already has ANY membership request (active or inactive)
+    // Use a more aggressive query to find ALL requests for this user
+    const existingRequests = await MembershipRequest.find({
+      'memberLogin.uid': data.memberLogin.uid
     });
 
-    if (existingRequest) {
-      console.log(`Duplicate request for user ${data.memberLogin.uid} - request already exists`);
-      return NextResponse.json(
-        { message: "A membership request already exists for this user" },
-        { status: 200 }
-      );
+    if (existingRequests.length > 0) {
+      console.log(`User ${data.memberLogin.uid} already has ${existingRequests.length} membership request(s)`);
+      
+      // Find the most recent request
+      const mostRecentRequest = existingRequests.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )[0];
+      
+      // If request was created in the last minute, it's likely a duplicate submission
+      const isRecentSubmission = (Date.now() - new Date(mostRecentRequest.createdAt).getTime()) < 60000;
+      
+      if (isRecentSubmission) {
+        console.log(`Recent submission detected for user ${data.memberLogin.uid} - returning existing request`);
+        return NextResponse.json(mostRecentRequest, { status: 200 });
+      }
+      
+      // If request is approved or pending (not soft-deleted), return it
+      if (mostRecentRequest.isApproved || !mostRecentRequest.softDeleted) {
+        return NextResponse.json(
+          { message: "A membership request already exists for this user" },
+          { status: 200 }
+        );
+      }
+      
+      // Otherwise, allow a new submission since the previous one was rejected
+      console.log(`Previous request was rejected, allowing new submission for user ${data.memberLogin.uid}`);
     }
 
     // Ensure visibility settings are in public/private format
@@ -178,8 +198,13 @@ export async function POST(request: Request) {
     }
 
     // Create new membership request
-    const membershipRequest = new MembershipRequest(data);
+    const membershipRequest = new MembershipRequest({
+      ...data,
+      requestId // Add the unique request ID
+    });
+    
     await membershipRequest.save();
+    console.log(`New membership request created for user ${data.memberLogin.uid}`);
 
     return NextResponse.json(membershipRequest, { status: 201 });
   } catch (error) {

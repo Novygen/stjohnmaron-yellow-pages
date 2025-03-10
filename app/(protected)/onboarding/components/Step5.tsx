@@ -27,41 +27,91 @@ export default function Step5({ back }: Step5Props) {
   const { submitMembershipRequest } = useMembershipRequest();
   const [submissionStatus, setSubmissionStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [submissionError, setSubmissionError] = useState<string>("");
-  const submittedRef = useRef(false);
+  const submittedRef = useRef<boolean>(false);
+  const isUnmountedRef = useRef<boolean>(false);
 
-  // This runs outside of useEffect to avoid double-triggering in React strict mode
-  const handleInitialSubmit = async () => {
-    // Return early if already submitted
-    if (submittedRef.current) return;
-    
-    // Immediately mark as submitted to prevent concurrent calls
+  // Set up clean-up function to mark component as unmounted
+  useEffect(() => {
+    return () => {
+      isUnmountedRef.current = true;
+    };
+  }, []);
+
+  // Submit once on mount
+  useEffect(() => {
+    // Only proceed if we haven't submitted yet
+    if (submittedRef.current) {
+      console.log("Already submitted, skipping");
+      return;
+    }
+
+    console.log("Starting first-time submission");
     submittedRef.current = true;
     setSubmissionStatus("submitting");
 
-    try {
-      // Add a small delay to ensure submittedRef is updated
-      await new Promise(resolve => setTimeout(resolve, 10));
-      console.log("Submitting membership request - has been submitted:", submittedRef.current);
-      
-      await submitMembershipRequest();
-      setSubmissionStatus("success");
-    } catch (error) {
-      // If error occurs, allow resubmission
-      setSubmissionStatus("error");
-      if (error instanceof Error) {
-        setSubmissionError(error.message);
-      } else {
-        setSubmissionError("An unexpected error occurred");
+    const submitRequest = async () => {
+      try {
+        console.log("Executing API call");
+        const response = await submitMembershipRequest();
+        if (response.status === 200) {
+          setSubmissionStatus("success");
+          console.log("API response:", response);
+        } else {
+          setSubmissionStatus("error");
+        }
+        
+        // If component is unmounted, don't update state
+        if (isUnmountedRef.current) return;
+      } catch (error) {
+        // If component is unmounted, don't update state
+        if (isUnmountedRef.current) return;
+        
+        console.error("Error submitting:", error);
+        setSubmissionStatus("error");
+        
+        if (error instanceof Error) {
+          setSubmissionError(error.message);
+        } else {
+          setSubmissionError("An unexpected error occurred");
+        }
       }
-    }
-  };
+    };
 
-  // Call immediately and only once
-  useEffect(() => {
-    handleInitialSubmit();
-    // Empty dependency array - runs only on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    // Start the submission process immediately
+    submitRequest();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array - run only on mount
+
+  const handleRetry = () => {
+    console.log("Retrying submission");
+    submittedRef.current = false;
+    setSubmissionStatus("submitting");
+    
+    const retrySubmission = async () => {
+      try {
+        console.log("Executing retry API call");
+        await submitMembershipRequest();
+        
+        if (isUnmountedRef.current) return;
+        
+        console.log("Retry successful");
+        setSubmissionStatus("success");
+      } catch (error) {
+        if (isUnmountedRef.current) return;
+        
+        console.error("Error during retry:", error);
+        setSubmissionStatus("error");
+        
+        if (error instanceof Error) {
+          setSubmissionError(error.message);
+        } else {
+          setSubmissionError("An unexpected error occurred");
+        }
+      }
+    };
+    
+    retrySubmission();
+  };
 
   if (submissionStatus === "idle" || submissionStatus === "submitting") {
     return (
@@ -133,11 +183,7 @@ export default function Step5({ back }: Step5Props) {
         </Button>
         <Button 
           colorScheme="blue" 
-          onClick={() => {
-            submittedRef.current = false;
-            setSubmissionStatus("idle");
-            handleInitialSubmit();
-          }}
+          onClick={handleRetry}
         >
           Try Again
         </Button>
