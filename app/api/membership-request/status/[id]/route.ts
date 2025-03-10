@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { withAdminApiAuth } from "@/app/utils/withAdminApiAuth";
 import MembershipRequest, { IMembershipRequest } from "@/models/MembershipRequest";
 import Member from "@/models/Member";
@@ -7,7 +7,7 @@ import dbConnect from "@/lib/dbConnect";
 type tParams = Promise<{ id: string }>;
 
 async function patchHandler(
-  request: Request,
+  request: NextRequest,
   { params }: { params: tParams }
 ) {
   await dbConnect();
@@ -193,7 +193,7 @@ function mapVisibilitySettings(visibility: {
 }
 
 export async function getHandler(
-  request: Request,
+  request: NextRequest,
   { params }: { params: tParams }
 ) {
   try {
@@ -229,11 +229,11 @@ export async function getHandler(
 }
 
 export const GET = async (
-  request: Request,
+  request: NextRequest,
   context: { params: tParams }
 ) => getHandler(request, context);
 
 export const PATCH = withAdminApiAuth(async (
-  request: Request,
+  request: NextRequest,
   context: { params: tParams }
 ) => patchHandler(request, context));
