@@ -89,4 +89,7 @@ async function getHandler(request: Request, { params }: { params: tParams }) {
   }
 }
 
-export const GET = getHandler; 
+export const GET = async (
+  request: Request,
+  context: { params: tParams }
+) => getHandler(request, context); 

@@ -154,5 +154,12 @@ async function patchHandler(
   }
 }
 
-export const GET = getHandler;
-export const PATCH = patchHandler; 
+export const GET = async (
+  request: Request,
+  context: { params: tParams }
+) => getHandler(request, context);
+
+export const PATCH = async (
+  request: Request,
+  context: { params: tParams }
+) => patchHandler(request, context); 

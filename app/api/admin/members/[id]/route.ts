@@ -75,6 +75,17 @@ async function deleteHandler(
   return NextResponse.json({ message: "Member deactivated" });
 }
 
-export const GET = getHandler;
-export const PATCH = patchHandler;
-export const DELETE = deleteHandler; 
+export const GET = async (
+  request: Request,
+  context: { params: tParams }
+) => getHandler(request, context);
+
+export const PATCH = async (
+  request: Request,
+  context: { params: tParams }
+) => patchHandler(request, context);
+
+export const DELETE = async (
+  request: Request,
+  context: { params: tParams }
+) => deleteHandler(request, context); 

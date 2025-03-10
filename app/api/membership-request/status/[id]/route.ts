@@ -228,5 +228,12 @@ export async function getHandler(
   }
 }
 
-export const GET = getHandler;
-export const PATCH = withAdminApiAuth(patchHandler);
+export const GET = async (
+  request: Request,
+  context: { params: tParams }
+) => getHandler(request, context);
+
+export const PATCH = withAdminApiAuth(async (
+  request: Request,
+  context: { params: tParams }
+) => patchHandler(request, context));
