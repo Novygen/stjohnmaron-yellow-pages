@@ -14,16 +14,21 @@ import {
   HStack,
   Button,
   useColorModeValue,
+  Spinner,
+  Center,
+  Alert,
+  AlertIcon,
 } from "@chakra-ui/react";
 import { FiUser, FiUsers, FiCalendar, FiMessageSquare } from "react-icons/fi";
 import Link from "next/link";
 import withAuth from "@/hoc/withAuth";
+import { useMemberProfile } from "@/app/hooks/useMemberProfile";
 
 export default withAuth(MemberDashboard);
 
 function MemberDashboard() {
-  // TODO: Replace with actual member status check
-  const isMemberApproved = false;
+  const { profile, loading, error } = useMemberProfile();
+  const isMemberApproved = profile?.isApproved || false;
   
   const cardBg = useColorModeValue("white", "gray.700");
   const cardHoverBg = useColorModeValue("gray.50", "gray.600");
@@ -54,6 +59,27 @@ function MemberDashboard() {
       href: isMemberApproved ? "/member/messages" : "/under-construction",
     },
   ];
+
+  if (loading) {
+    return (
+      <Container maxW="6xl" py={8}>
+        <Center h="300px">
+          <Spinner size="xl" color="blue.500" />
+        </Center>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container maxW="6xl" py={8}>
+        <Alert status="error" borderRadius="lg">
+          <AlertIcon />
+          {error}
+        </Alert>
+      </Container>
+    );
+  }
 
   return (
     <Container maxW="6xl" py={8}>
@@ -105,8 +131,14 @@ function MemberDashboard() {
                 Your membership request is currently under review. Some features are limited until your membership is approved.
                 We will notify you once it has been approved.
               </Text>
-              <Button colorScheme="blue" size="sm" alignSelf="flex-start">
-                Check Status
+              <Button 
+                as={Link} 
+                href="/member/profile" 
+                colorScheme="blue" 
+                size="sm" 
+                alignSelf="flex-start"
+              >
+                View Profile
               </Button>
             </VStack>
           </Box>

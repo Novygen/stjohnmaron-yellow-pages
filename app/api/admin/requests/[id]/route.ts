@@ -98,7 +98,7 @@ async function patchHandler(
       }
 
       // Create new member from request
-      const employments = createEmploymentsFromRequest(membershipRequest);
+      const employments = getEmploymentsFromRequest(membershipRequest);
 
       // Extract skills properly
       console.log("Skills data received:", JSON.stringify(membershipRequest.professionalInfo.skills, null, 2));
@@ -128,17 +128,20 @@ async function patchHandler(
       const newMember = new Member({
         uid: membershipRequest.memberLogin.uid,
         personalDetails: {
-          ...membershipRequest.personalDetails,
-          // Include parish status if it exists
-          ...(membershipRequest.personalDetails.parishStatus && {
-            parishStatus: membershipRequest.personalDetails.parishStatus
-          })
+          firstName: membershipRequest.personalDetails.firstName,
+          lastName: membershipRequest.personalDetails.lastName,
+          middleName: membershipRequest.personalDetails.middleName,
+          ageRange: membershipRequest.personalDetails.ageRange,
+          state: membershipRequest.personalDetails.state,
+          parishStatus: membershipRequest.personalDetails.parishStatus,
         },
-        contactInformation: membershipRequest.contactInformation,
+        contactInformation: {
+          primaryEmail: membershipRequest.contactInformation.primaryEmail,
+          primaryPhoneNumber: membershipRequest.contactInformation.primaryPhoneNumber,
+          address: membershipRequest.contactInformation.address
+        },
         employments: employments,
-        // Assign skills properly
         skills: skillsData,
-        // Assign social media links to both properties
         socialPresence: socialData,
         social: socialData,
         visibility: {
@@ -156,9 +159,11 @@ async function patchHandler(
           phoneNumber: membershipRequest.privacyConsent.displayPhonePublicly ? 'public' : 'private'
         },
         status: 'active',
-        memberSince: new Date(),
-        lastUpdated: new Date(),
-        lastUpdatedBy: 'system'
+        metadata: {
+          approved: true,
+          approvedBy: "SYSTEM",
+          dateJoined: new Date()
+        }
       });
 
       // Add additional logging to verify data before saving
@@ -256,10 +261,44 @@ async function patchHandler(
   }
 }
 
-// Helper function to create employments array from membership request
-function createEmploymentsFromRequest(membershipRequest: any) {
-  const employments = [];
-  const statuses = membershipRequest.professionalInfo.employmentStatus.status.split(',');
+// Helper function to convert membership request professional info to employments array
+function getEmploymentsFromRequest(membershipRequest: { 
+  professionalInfo: {
+    employmentStatus?: { status?: string };
+    employmentDetails?: {
+      companyName: string;
+      jobTitle: string;
+      specialization: string;
+    };
+    businesses?: Array<{
+      businessName: string;
+      industry: string;
+      description: string;
+      website?: string;
+      phoneNumber?: string;
+      businessEmail?: string;
+    }>;
+    business?: {
+      businessName: string;
+      industry: string;
+      description: string;
+      website?: string;
+      phoneNumber?: string;
+      businessEmail?: string;
+    };
+    student?: {
+      schoolName: string;
+      fieldOfStudy: string;
+      expectedGraduationYear: string;
+    };
+  };
+}) {
+  const employments: Array<{
+    type: string;
+    details: any;
+    isActive: boolean;
+  }> = [];
+  const statuses = membershipRequest.professionalInfo.employmentStatus?.status?.split(',') || [];
   
   // Handle employed status
   if (statuses.includes('employed') && membershipRequest.professionalInfo.employmentDetails) {
@@ -270,19 +309,18 @@ function createEmploymentsFromRequest(membershipRequest: any) {
         jobTitle: membershipRequest.professionalInfo.employmentDetails.jobTitle,
         specialization: membershipRequest.professionalInfo.employmentDetails.specialization,
       },
-      isActive: true,
-      startDate: new Date(),
+      isActive: true
     });
   }
   
-  // Handle business owner status - support for multiple businesses
+  // Handle business owner status
   if (statuses.includes('business_owner')) {
-    // Check if we have the new businesses array
+    // Check if we have the businesses array
     if (membershipRequest.professionalInfo.businesses && 
         membershipRequest.professionalInfo.businesses.length > 0) {
       
       // Process each business in the array
-      membershipRequest.professionalInfo.businesses.forEach((business: any) => {
+      membershipRequest.professionalInfo.businesses.forEach((business) => {
         employments.push({
           type: 'business_owner',
           details: {
@@ -293,8 +331,7 @@ function createEmploymentsFromRequest(membershipRequest: any) {
             phoneNumber: business.phoneNumber || "",
             businessEmail: business.businessEmail || "",
           },
-          isActive: true,
-          startDate: new Date(),
+          isActive: true
         });
       });
     } 
@@ -310,8 +347,7 @@ function createEmploymentsFromRequest(membershipRequest: any) {
           phoneNumber: membershipRequest.professionalInfo.business.phoneNumber || "",
           businessEmail: membershipRequest.professionalInfo.business.businessEmail || "",
         },
-        isActive: true,
-        startDate: new Date(),
+        isActive: true
       });
     }
   }
@@ -325,8 +361,7 @@ function createEmploymentsFromRequest(membershipRequest: any) {
         fieldOfStudy: membershipRequest.professionalInfo.student.fieldOfStudy,
         expectedGraduationYear: membershipRequest.professionalInfo.student.expectedGraduationYear,
       },
-      isActive: true,
-      startDate: new Date(),
+      isActive: true
     });
   }
   

@@ -61,7 +61,7 @@ const membershipRequestSchema = z.object({
   }),
   professionalInfo: z
     .object({
-      employmentStatus: z.object({
+    employmentStatus: z.object({
         status: z.string().min(1, "Employment status is required"),
       }),
       employmentDetails: employmentDetailsSchema.optional(),
