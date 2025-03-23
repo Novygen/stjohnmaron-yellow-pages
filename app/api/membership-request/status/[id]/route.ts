@@ -3,8 +3,9 @@ import { withAdminApiAuth } from "@/app/utils/withAdminApiAuth";
 import MembershipRequest, { IMembershipRequest } from "@/models/MembershipRequest";
 import Member from "@/models/Member";
 import dbConnect from "@/lib/dbConnect";
+import { tParams as AdminApiParams } from "@/app/utils/withAdminApiAuth";
 
-type tParams = Promise<{ id: string }>;
+type tParams = { id: string };
 
 async function patchHandler(
   request: NextRequest,
@@ -12,7 +13,7 @@ async function patchHandler(
 ) {
   await dbConnect();
   const { action, notes } = await request.json();
-  const memberId = (await params).id;
+  const memberId = params.id;
   
   const membershipRequest = await MembershipRequest.findById(memberId);
   if (!membershipRequest) {
@@ -30,8 +31,7 @@ async function patchHandler(
         personalDetails: membershipRequest.personalDetails,
         contactInformation: membershipRequest.contactInformation,
         employments: createEmploymentsFromRequest(membershipRequest),
-        socialPresence: membershipRequest.socialPresence,
-        visibility: membershipRequest.privacyConsent ? mapVisibilitySettings({
+        socialPresence: membershipRequest.privacyConsent ? mapVisibilitySettings({
           profile: 'public',
           contact: {
             email: membershipRequest.privacyConsent.displayInYellowPages ? 'public' : 'private',
@@ -192,12 +192,14 @@ function mapVisibilitySettings(visibility: {
   };
 }
 
-export async function getHandler(
-  request: NextRequest, { params }: { params: tParams }
+export async function GET(
+  request: NextRequest,
+  { params }: { params: AdminApiParams }
 ) {
   try {
     await dbConnect();
-    const uid = (await params).id;
+    const resolvedParams = await params;
+    const uid = resolvedParams.id;
     
     // Find any approved requests
     const approvedRequest = await MembershipRequest.findOne({
@@ -227,14 +229,10 @@ export async function getHandler(
   }
 }
 
-export const GET = async (
-  request: NextRequest,
-  context: { params: tParams }
-) => {
-  return getHandler(request, context);
-};
-
 export const PATCH = withAdminApiAuth(async (
   request: NextRequest,
-  context: { params: tParams }
-) => patchHandler(request, context));
+  context: { params: AdminApiParams }
+) => {
+  const resolvedParams = await context.params;
+  return patchHandler(request, { params: { id: resolvedParams.id } });
+});

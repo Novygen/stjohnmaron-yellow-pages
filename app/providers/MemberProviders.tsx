@@ -2,6 +2,7 @@
 
 import { CacheProvider } from '@chakra-ui/next-js';
 import { ChakraProvider, extendTheme } from '@chakra-ui/react';
+import { Toaster } from 'react-hot-toast';
 
 const memberTheme = extendTheme({
   config: {
@@ -45,6 +46,7 @@ export function MemberProviders({ children }: { children: React.ReactNode }) {
   return (
     <CacheProvider>
       <ChakraProvider theme={memberTheme}>
+        <Toaster position="top-center" />
         {children}
       </ChakraProvider>
     </CacheProvider>

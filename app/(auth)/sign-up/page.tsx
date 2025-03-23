@@ -77,13 +77,22 @@ export default function SignUpPage() {
         error: 'Failed to create account'
       });
     } catch (error: unknown) {
-      const errorMessage = error instanceof FirebaseError
-        ? error.code === 'auth/email-already-in-use'
-          ? 'Email already in use'
-          : error.code === 'auth/invalid-email'
-          ? 'Invalid email address'
-          : 'An error occurred during sign up'
-        : 'An error occurred during sign up';
+      let errorMessage = 'An error occurred during sign up';
+      
+      if (error instanceof FirebaseError) {
+        switch (error.code) {
+          case 'auth/email-already-in-use':
+            errorMessage = 'User already exists. Please sign in instead.';
+            break;
+          case 'auth/invalid-email':
+            errorMessage = 'Invalid email address';
+            break;
+          case 'auth/weak-password':
+            errorMessage = 'Password is too weak';
+            break;
+        }
+      }
+      
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -99,30 +108,69 @@ export default function SignUpPage() {
     setIsLoading(true);
     
     try {
+      // First check if a user with this email already exists
       const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      const token = await user.getIdToken();
       
-      dispatch(setUser({
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-        token
-      }));
+      try {
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+        const token = await user.getIdToken();
+        const isNewUser = result.user.metadata.creationTime === result.user.metadata.lastSignInTime;
+        
+        if (!isNewUser) {
+          // User already exists, show a message but still log them in
+          toast.success('User already exists. Signing you in...');
+          dispatch(setUser({
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            token
+          }));
+          
+          // Check membership status and redirect appropriately
+          toast.promise(checkMembershipStatus(user.uid), {
+            loading: 'Checking your account...',
+            success: (submitted: boolean) => {
+              router.push(submitted ? "/dashboard" : "/onboarding");
+              return 'Welcome back!';
+            },
+            error: 'Failed to check account status'
+          });
+        } else {
+          // New user - continue with sign up flow
+          dispatch(setUser({
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            token
+          }));
 
-      toast.promise(checkMembershipStatus(user.uid), {
-        loading: 'Creating your account...',
-        success: (submitted: boolean) => {
-          router.push(submitted ? "/dashboard" : "/onboarding");
-          return 'Account created successfully!';
-        },
-        error: 'Failed to create account'
-      });
+          toast.promise(checkMembershipStatus(user.uid), {
+            loading: 'Creating your account...',
+            success: (submitted: boolean) => {
+              router.push(submitted ? "/dashboard" : "/onboarding");
+              return 'Account created successfully!';
+            },
+            error: 'Failed to create account'
+          });
+        }
+      } catch (error) {
+        throw error;
+      }
     } catch (error: unknown) {
-      const errorMessage = error instanceof FirebaseError && error.code === 'auth/popup-closed-by-user'
-        ? 'Sign up cancelled'
-        : 'An error occurred during sign up';
+      let errorMessage = 'An error occurred during sign up';
+      
+      if (error instanceof FirebaseError) {
+        switch (error.code) {
+          case 'auth/account-exists-with-different-credential':
+            errorMessage = 'User already exists with a different sign-in method. Please use your original sign-in method.';
+            break;
+          case 'auth/popup-closed-by-user':
+            errorMessage = 'Sign up cancelled';
+            break;
+        }
+      }
+      
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
