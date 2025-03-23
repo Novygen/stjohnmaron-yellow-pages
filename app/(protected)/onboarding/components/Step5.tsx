@@ -139,7 +139,7 @@ export default function Step5({ back }: Step5Props) {
             Membership Request Submitted!
           </AlertTitle>
           <AlertDescription maxWidth="sm">
-            Thank you for completing the onboarding process. Your membership request has been submitted successfully.
+            Thank you for completing the onboarding process. Your membership request has been submitted successfully. Your information will be reviewed and approved before publishing to the directory.
           </AlertDescription>
         </Alert>
         <Button 
