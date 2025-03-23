@@ -77,6 +77,17 @@ export async function GET(
       );
     }
     
+    // Fix data inconsistency - if we have social but not socialPresence data
+    if (member.social && (!member.socialPresence || 
+        (!member.socialPresence.linkedInProfile && !member.socialPresence.personalWebsite))) {
+      console.log('Fixing member data - copying from social to socialPresence');
+      member.socialPresence = {
+        linkedInProfile: member.social.linkedInProfile,
+        personalWebsite: member.social.personalWebsite
+      };
+      await member.save();
+    }
+    
     // Format the response based on visibility settings
     const formatMemberResponse = (): MemberResponse => {
       const response: MemberResponse = {
@@ -151,7 +162,21 @@ export async function GET(
       
       // Add social presence based on visibility
       if (member.visibility.social === 'public') {
-        response.socialPresence = member.socialPresence;
+        console.log('Social presence data:', member.socialPresence);
+        console.log('Social object data:', member.social);
+        console.log('Social visibility:', member.visibility.social);
+        
+        // Use either socialPresence or social, whichever exists
+        if (member.social && (member.social.linkedInProfile || member.social.personalWebsite)) {
+          response.socialPresence = {
+            linkedInProfile: member.social.linkedInProfile,
+            personalWebsite: member.social.personalWebsite
+          };
+        } else if (member.socialPresence) {
+          response.socialPresence = member.socialPresence;
+        }
+      } else {
+        console.log('Social visibility is not public:', member.visibility.social);
       }
       
       return response;

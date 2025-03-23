@@ -26,12 +26,16 @@ async function patchHandler(
   switch (action) {
     case 'approve':
       // Create new member from request
+      console.log('Creating member with social presence:', membershipRequest.socialPresence);
+
       const member = new Member({
         uid: membershipRequest.memberLogin.uid,
         personalDetails: membershipRequest.personalDetails,
         contactInformation: membershipRequest.contactInformation,
         employments: createEmploymentsFromRequest(membershipRequest),
-        socialPresence: membershipRequest.privacyConsent ? mapVisibilitySettings({
+        socialPresence: membershipRequest.socialPresence,
+        social: membershipRequest.socialPresence,
+        visibility: membershipRequest.privacyConsent ? mapVisibilitySettings({
           profile: 'public',
           contact: {
             email: membershipRequest.privacyConsent.displayInYellowPages ? 'public' : 'private',
@@ -187,7 +191,7 @@ function mapVisibilitySettings(visibility: {
       current: mapValue(visibility.employment.current),
       history: mapValue(visibility.employment.history),
     },
-    social: mapValue(visibility.social),
+    social: 'public',
     phoneNumber: mapValue(phoneVisibility)
   };
 }

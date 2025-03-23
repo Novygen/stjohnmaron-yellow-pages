@@ -65,6 +65,10 @@ export interface IMember extends Document {
     linkedInProfile?: string;
     personalWebsite?: string;
   };
+  social?: {
+    linkedInProfile?: string;
+    personalWebsite?: string;
+  };
   visibility: IVisibility;
   status: 'active' | 'inactive' | 'suspended';
   memberSince: Date;
@@ -170,6 +174,10 @@ const MemberSchema = new Schema<IMember>({
   },
   employments: [EmploymentSchema],
   socialPresence: {
+    linkedInProfile: String,
+    personalWebsite: String,
+  },
+  social: {
     linkedInProfile: String,
     personalWebsite: String,
   },
