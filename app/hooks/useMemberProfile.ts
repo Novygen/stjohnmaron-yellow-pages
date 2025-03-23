@@ -51,11 +51,11 @@ export interface ISkills {
 
 // Social presence interface
 export interface ISocialPresence {
-  linkedin?: string;
-  facebook?: string;
-  instagram?: string;
-  website?: string;
-  twitter?: string;
+  linkedInProfile?: string;
+  facebookProfile?: string;
+  instagramProfile?: string;
+  personalWebsite?: string;
+  xProfile?: string;
 }
 
 export interface MemberProfile {

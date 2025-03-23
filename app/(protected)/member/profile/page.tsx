@@ -39,7 +39,7 @@ import {
   FormHelperText,
 } from "@chakra-ui/react";
 import withAuth from "@/hoc/withAuth";
-import { useMemberProfile, MemberProfile, IEmployment, ISocialPresence, IVisibility } from "@/app/hooks/useMemberProfile";
+import { useMemberProfile, MemberProfile, IEmployment, IVisibility } from "@/app/hooks/useMemberProfile";
 import { AddIcon, DeleteIcon } from '@chakra-ui/icons';
 
 // Define a type for visibility option values
@@ -169,14 +169,27 @@ function ProfilePage() {
     });
   };
 
-  const handleSocialChange = (platform: keyof ISocialPresence, value: string) => {
+  const handleSocialChange = (field: string, value: string) => {
     setFormData(prev => {
       if (!prev) return prev;
+      
+      // Map the UI field names to the API field names
+      const fieldMapping: Record<string, string> = {
+        'linkedin': 'linkedInProfile',
+        'website': 'personalWebsite',
+        'instagram': 'instagramProfile',
+        'facebook': 'facebookProfile',
+        'twitter': 'xProfile'
+      };
+      
+      // Use the mapped field name or the original if not in mapping
+      const apiFieldName = fieldMapping[field] || field;
+      
       return {
         ...prev,
         socialPresence: {
-          ...(prev.socialPresence || {}),
-          [platform]: value
+          ...prev.socialPresence,
+          [apiFieldName]: value
         }
       };
     });
@@ -972,7 +985,7 @@ function ProfilePage() {
                         <SkeletonText />
                       ) : (
                         <Input
-                          value={formData?.socialPresence?.linkedin || ''}
+                          value={formData?.socialPresence?.linkedInProfile || ''}
                           onChange={(e) => handleSocialChange('linkedin', e.target.value)}
                           placeholder="https://linkedin.com/in/your-profile"
                           isDisabled={isSubmitting || !profile?.isApproved}
@@ -986,7 +999,7 @@ function ProfilePage() {
                         <SkeletonText />
                       ) : (
                         <Input
-                          value={formData?.socialPresence?.facebook || ''}
+                          value={formData?.socialPresence?.facebookProfile || ''}
                           onChange={(e) => handleSocialChange('facebook', e.target.value)}
                           placeholder="https://facebook.com/your-profile"
                           isDisabled={isSubmitting || !profile?.isApproved}
@@ -1000,7 +1013,7 @@ function ProfilePage() {
                         <SkeletonText />
                       ) : (
                         <Input
-                          value={formData?.socialPresence?.instagram || ''}
+                          value={formData?.socialPresence?.instagramProfile || ''}
                           onChange={(e) => handleSocialChange('instagram', e.target.value)}
                           placeholder="https://instagram.com/your-profile"
                           isDisabled={isSubmitting || !profile?.isApproved}
@@ -1014,7 +1027,7 @@ function ProfilePage() {
                         <SkeletonText />
                       ) : (
                         <Input
-                          value={formData?.socialPresence?.twitter || ''}
+                          value={formData?.socialPresence?.xProfile || ''}
                           onChange={(e) => handleSocialChange('twitter', e.target.value)}
                           placeholder="https://twitter.com/your-profile"
                           isDisabled={isSubmitting || !profile?.isApproved}
@@ -1028,7 +1041,7 @@ function ProfilePage() {
                         <SkeletonText />
                       ) : (
                         <Input
-                          value={formData?.socialPresence?.website || ''}
+                          value={formData?.socialPresence?.personalWebsite || ''}
                           onChange={(e) => handleSocialChange('website', e.target.value)}
                           placeholder="https://your-website.com"
                           isDisabled={isSubmitting || !profile?.isApproved}

@@ -142,8 +142,20 @@ async function patchHandler(
         },
         employments: employments,
         skills: skillsData,
-        socialPresence: socialData,
-        social: socialData,
+        socialPresence: {
+          linkedInProfile: socialData.linkedInProfile,
+          personalWebsite: socialData.personalWebsite,
+          instagramProfile: socialData.instagramProfile,
+          facebookProfile: socialData.facebookProfile,
+          xProfile: socialData.xProfile
+        },
+        social: {
+          linkedInProfile: socialData.linkedInProfile,
+          personalWebsite: socialData.personalWebsite,
+          instagramProfile: socialData.instagramProfile,
+          facebookProfile: socialData.facebookProfile,
+          xProfile: socialData.xProfile
+        },
         visibility: {
           profile: membershipRequest.privacyConsent.displayInYellowPages ? 'public' : 'private',
           contact: {
@@ -159,6 +171,7 @@ async function patchHandler(
           phoneNumber: membershipRequest.privacyConsent.displayPhonePublicly ? 'public' : 'private'
         },
         status: 'active',
+        lastUpdatedBy: "SYSTEM",
         metadata: {
           approved: true,
           approvedBy: "SYSTEM",
@@ -167,7 +180,7 @@ async function patchHandler(
       });
 
       // Add additional logging to verify data before saving
-      console.log("New member social data:", JSON.stringify({
+      console.log("New member social data before save:", JSON.stringify({
         socialPresence: newMember.socialPresence,
         social: newMember.social
       }, null, 2));
@@ -176,6 +189,13 @@ async function patchHandler(
       try {
         await newMember.save();
         console.log(`Created new member for UID: ${membershipRequest.memberLogin.uid}`);
+        
+        // Verify what was actually saved
+        const savedMember = await Member.findOne({ uid: membershipRequest.memberLogin.uid });
+        console.log("Social data after save:", JSON.stringify({
+          socialPresence: savedMember?.socialPresence,
+          social: savedMember?.social
+        }, null, 2));
       } catch (memberError) {
         console.error("Failed to create member:", memberError);
         throw new Error(`Failed to create member: ${memberError instanceof Error ? memberError.message : 'Unknown error'}`);
