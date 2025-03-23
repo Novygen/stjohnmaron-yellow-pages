@@ -64,6 +64,9 @@ export interface IProfessionalInfo {
 export interface ISocialPresence {
   linkedInProfile?: string;
   personalWebsite?: string;
+  instagramProfile?: string;
+  facebookProfile?: string;
+  xProfile?: string;
 }
 
 export interface IPrivacyConsent {

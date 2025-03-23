@@ -36,14 +36,22 @@ export default function Step3({ next, back }: Step3Props) {
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-
-    if (localSocial.linkedInProfile && !validateUrl(localSocial.linkedInProfile)) {
-      newErrors.linkedInProfile = "Please enter a valid URL (must start with http:// or https://)";
-    }
-
-    if (localSocial.personalWebsite && !validateUrl(localSocial.personalWebsite)) {
-      newErrors.personalWebsite = "Please enter a valid URL (must start with http:// or https://)";
-    }
+    
+    // Validate all social URLs
+    const urlFields = [
+      'linkedInProfile', 
+      'personalWebsite', 
+      'instagramProfile', 
+      'facebookProfile', 
+      'xProfile'
+    ];
+    
+    urlFields.forEach(field => {
+      if (localSocial[field as keyof typeof localSocial] && 
+          !validateUrl(localSocial[field as keyof typeof localSocial] as string)) {
+        newErrors[field] = "Please enter a valid URL (must start with http:// or https://)";
+      }
+    });
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -87,6 +95,42 @@ export default function Step3({ next, back }: Step3Props) {
           onChange={(e) => setLocalSocial({ ...localSocial, personalWebsite: e.target.value })}
         />
         <FormErrorMessage>{errors.personalWebsite}</FormErrorMessage>
+      </FormControl>
+      
+      <FormControl isInvalid={!!errors.instagramProfile}>
+        <FormLabel>Instagram Profile</FormLabel>
+        <Input
+          bg={inputBg}
+          type="url"
+          placeholder="https://www.instagram.com/your-username"
+          value={localSocial.instagramProfile || ""}
+          onChange={(e) => setLocalSocial({ ...localSocial, instagramProfile: e.target.value })}
+        />
+        <FormErrorMessage>{errors.instagramProfile}</FormErrorMessage>
+      </FormControl>
+      
+      <FormControl isInvalid={!!errors.facebookProfile}>
+        <FormLabel>Facebook Profile</FormLabel>
+        <Input
+          bg={inputBg}
+          type="url"
+          placeholder="https://www.facebook.com/your-profile"
+          value={localSocial.facebookProfile || ""}
+          onChange={(e) => setLocalSocial({ ...localSocial, facebookProfile: e.target.value })}
+        />
+        <FormErrorMessage>{errors.facebookProfile}</FormErrorMessage>
+      </FormControl>
+      
+      <FormControl isInvalid={!!errors.xProfile}>
+        <FormLabel>X Profile (Twitter)</FormLabel>
+        <Input
+          bg={inputBg}
+          type="url"
+          placeholder="https://x.com/your-username"
+          value={localSocial.xProfile || ""}
+          onChange={(e) => setLocalSocial({ ...localSocial, xProfile: e.target.value })}
+        />
+        <FormErrorMessage>{errors.xProfile}</FormErrorMessage>
       </FormControl>
 
       <HStack spacing={4} mt={8} justify="flex-end">

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Building, Briefcase, GraduationCap, Mail, Phone, MapPin, Globe, Linkedin } from 'lucide-react';
+import { ArrowLeft, Building, Briefcase, GraduationCap, Mail, Phone, MapPin, Globe, Linkedin, Instagram, Facebook, Twitter } from 'lucide-react';
 
 interface EmploymentInfo {
   type: string;
@@ -44,6 +44,9 @@ interface MemberDetails {
   socialPresence?: {
     linkedInProfile?: string;
     personalWebsite?: string;
+    instagramProfile?: string;
+    facebookProfile?: string;
+    xProfile?: string;
   };
 }
 
@@ -363,6 +366,48 @@ export default function MemberDirectoryPage() {
                             className="text-blue-600 hover:text-blue-500 break-all"
                           >
                             Personal Website
+                          </a>
+                        </div>
+                      )}
+                      
+                      {member.socialPresence.instagramProfile && (
+                        <div className="flex items-center">
+                          <Instagram className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
+                          <a 
+                            href={member.socialPresence.instagramProfile.startsWith('http') ? member.socialPresence.instagramProfile : `https://${member.socialPresence.instagramProfile}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-500 break-all"
+                          >
+                            Instagram Profile
+                          </a>
+                        </div>
+                      )}
+                      
+                      {member.socialPresence.facebookProfile && (
+                        <div className="flex items-center">
+                          <Facebook className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
+                          <a 
+                            href={member.socialPresence.facebookProfile.startsWith('http') ? member.socialPresence.facebookProfile : `https://${member.socialPresence.facebookProfile}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-500 break-all"
+                          >
+                            Facebook Profile
+                          </a>
+                        </div>
+                      )}
+                      
+                      {member.socialPresence.xProfile && (
+                        <div className="flex items-center">
+                          <Twitter className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
+                          <a 
+                            href={member.socialPresence.xProfile.startsWith('http') ? member.socialPresence.xProfile : `https://${member.socialPresence.xProfile}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-500 break-all"
+                          >
+                            X Profile
                           </a>
                         </div>
                       )}

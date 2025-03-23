@@ -64,10 +64,16 @@ export interface IMember extends Document {
   socialPresence: {
     linkedInProfile?: string;
     personalWebsite?: string;
+    instagramProfile?: string;
+    facebookProfile?: string;
+    xProfile?: string;
   };
   social?: {
     linkedInProfile?: string;
     personalWebsite?: string;
+    instagramProfile?: string;
+    facebookProfile?: string;
+    xProfile?: string;
   };
   visibility: IVisibility;
   status: 'active' | 'inactive' | 'suspended';
@@ -176,10 +182,16 @@ const MemberSchema = new Schema<IMember>({
   socialPresence: {
     linkedInProfile: String,
     personalWebsite: String,
+    instagramProfile: String,
+    facebookProfile: String,
+    xProfile: String,
   },
   social: {
     linkedInProfile: String,
     personalWebsite: String,
+    instagramProfile: String,
+    facebookProfile: String,
+    xProfile: String,
   },
   visibility: { type: VisibilitySchema, required: true },
   status: { 

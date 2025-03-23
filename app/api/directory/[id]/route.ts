@@ -42,6 +42,9 @@ interface MemberResponse {
   socialPresence?: {
     linkedInProfile?: string;
     personalWebsite?: string;
+    instagramProfile?: string;
+    facebookProfile?: string;
+    xProfile?: string;
   };
 }
 
@@ -167,10 +170,14 @@ export async function GET(
         console.log('Social visibility:', member.visibility.social);
         
         // Use either socialPresence or social, whichever exists
-        if (member.social && (member.social.linkedInProfile || member.social.personalWebsite)) {
+        if (member.social && (member.social.linkedInProfile || member.social.personalWebsite || 
+            member.social.instagramProfile || member.social.facebookProfile || member.social.xProfile)) {
           response.socialPresence = {
             linkedInProfile: member.social.linkedInProfile,
-            personalWebsite: member.social.personalWebsite
+            personalWebsite: member.social.personalWebsite,
+            instagramProfile: member.social.instagramProfile,
+            facebookProfile: member.social.facebookProfile,
+            xProfile: member.social.xProfile
           };
         } else if (member.socialPresence) {
           response.socialPresence = member.socialPresence;
