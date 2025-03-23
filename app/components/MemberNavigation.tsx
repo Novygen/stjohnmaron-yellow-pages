@@ -40,15 +40,7 @@ const NAV_ITEMS = [
   },
   {
     label: "Directory",
-    href: "/member/directory",
-  },
-  {
-    label: "Events",
-    href: "/member/events",
-  },
-  {
-    label: "Messages",
-    href: "/member/messages",
+    href: "/",
   },
 ];
 

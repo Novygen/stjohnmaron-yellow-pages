@@ -19,7 +19,7 @@ import {
   Alert,
   AlertIcon,
 } from "@chakra-ui/react";
-import { FiUser, FiUsers, FiCalendar, FiMessageSquare } from "react-icons/fi";
+import { FiUser, FiUsers } from "react-icons/fi";
 import Link from "next/link";
 import withAuth from "@/hoc/withAuth";
 import { useMemberProfile } from "@/app/hooks/useMemberProfile";
@@ -44,19 +44,7 @@ function MemberDashboard() {
       title: "Member Directory",
       description: "Connect with other members of our community",
       icon: FiUsers,
-      href: isMemberApproved ? "/member/directory" : "/under-construction",
-    },
-    {
-      title: "Events",
-      description: "View upcoming events and register",
-      icon: FiCalendar,
-      href: isMemberApproved ? "/member/events" : "/under-construction",
-    },
-    {
-      title: "Messages",
-      description: "View your messages and notifications",
-      icon: FiMessageSquare,
-      href: isMemberApproved ? "/member/messages" : "/under-construction",
+      href: "/",
     },
   ];
 
