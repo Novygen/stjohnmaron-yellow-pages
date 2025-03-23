@@ -50,6 +50,12 @@ export interface IBusiness {
   description: string;
   website?: string;
   phoneNumber?: string;
+  businessEmail?: string;
+}
+
+export interface ISkills {
+  skills?: string;
+  description?: string;
 }
 
 export interface IStudent {
@@ -61,8 +67,10 @@ export interface IStudent {
 export interface IProfessionalInfo {
   employmentStatus: IEmploymentStatus;
   employmentDetails?: IEmploymentDetails;
-  business?: IBusiness;
+  businesses?: IBusiness[];
+  business?: IBusiness;  // Keep for backward compatibility
   student?: IStudent;
+  skills?: ISkills;
 }
 
 export interface ISocialPresence {
@@ -146,38 +154,82 @@ const MembershipRequestSchema = new Schema<IMembershipRequest>(
       type: Object,
       required: true,
       validate: {
-        validator: (value: IProfessionalInfo) => {
-          if (!value.employmentStatus?.status) return false;
-
-          const statuses = value.employmentStatus.status.split(',');
+        validator: function(value: IProfessionalInfo) {
+          // Debug the complete input to see exactly what we're working with
+          console.log('VALIDATOR INPUT:', JSON.stringify(value, null, 2));
           
-          // Check if the combination is valid
-          if (statuses.includes('other')) {
-            return statuses.length === 1; // 'other' can't be combined with other statuses
+          // Basic presence check
+          if (!value.employmentStatus || typeof value.employmentStatus.status !== 'string') {
+            console.log('VALIDATOR FAILED: Missing or invalid employmentStatus');
+            return false;
           }
-
-          // For active statuses (employed, business_owner, student)
-          let isValid = true;
-
-          // Check required fields for each selected status
+          
+          // Get statuses as array
+          const statusStr = value.employmentStatus.status.trim();
+          if (!statusStr) {
+            console.log('VALIDATOR FAILED: Empty status string');
+            return false;
+          }
+          
+          const statuses = statusStr.split(',').filter(Boolean);
+          console.log('VALIDATOR STATUSES:', statuses);
+          
+          // Special case for "other" - can't be combined
+          if (statuses.includes('other') && statuses.length > 1) {
+            console.log('VALIDATOR FAILED: "other" combined with other statuses');
+            return false;
+          }
+          
+          // Check each required status
           if (statuses.includes('employed')) {
-            isValid = isValid && !!(
-              value.employmentDetails?.companyName?.trim() &&
-              value.employmentDetails?.jobTitle?.trim() &&
-              value.employmentDetails?.specialization?.trim()
-            );
+            // For employed status, check employment details
+            if (!value.employmentDetails || 
+                !value.employmentDetails.companyName || 
+                !value.employmentDetails.jobTitle || 
+                !value.employmentDetails.specialization) {
+              console.log('VALIDATOR FAILED: Missing required employment details');
+              return false;
+            }
           }
-
+          
+          // For business owner, simplify check to be more lenient
           if (statuses.includes('business_owner')) {
-            isValid = isValid && !!(
-              value.business?.businessName?.trim() &&
-              value.business?.industry?.trim() &&
-              value.business?.description?.trim()
-            );
+            console.log('VALIDATOR BUSINESS DATA:', {
+              businesses: value.businesses,
+              business: value.business
+            });
+            
+            // First try the array approach
+            if (Array.isArray(value.businesses) && value.businesses.length > 0) {
+              // Check if ANY business in the array has the required fields
+              const validBusiness = value.businesses.some(b => 
+                b && typeof b === 'object' && 
+                b.businessName && b.industry && b.description
+              );
+              
+              if (validBusiness) {
+                console.log('VALIDATOR: Found valid business in array');
+                return true; // Short circuit if we find at least one valid business
+              }
+            }
+            
+            // Fall back to single business object
+            if (value.business && 
+                value.business.businessName && 
+                value.business.industry && 
+                value.business.description) {
+              console.log('VALIDATOR: Found valid single business');
+              return true; // Short circuit if we find a valid single business
+            }
+            
+            // If we get here with business_owner status, validation failed
+            console.log('VALIDATOR FAILED: No valid business found for business_owner');
+            return false;
           }
-
-          // Student fields are optional, so no validation needed
-          return isValid;
+          
+          // If we reach here, all required validations passed
+          console.log('VALIDATOR PASSED');
+          return true;
         },
         message: "Required professional information is missing or employment status combination is invalid",
       },
@@ -196,6 +248,53 @@ const MembershipRequestSchema = new Schema<IMembershipRequest>(
 
 // Add a unique index on requestId to prevent duplicates
 MembershipRequestSchema.index({ requestId: 1 }, { unique: true, sparse: true });
+
+// Add a pre-save hook as additional validation
+MembershipRequestSchema.pre('save', function(next) {
+  // Check if this is a business_owner submission
+  if (this.professionalInfo && 
+      this.professionalInfo.employmentStatus && 
+      this.professionalInfo.employmentStatus.status && 
+      this.professionalInfo.employmentStatus.status.includes('business_owner')) {
+    
+    console.log('PRE-SAVE HOOK: Checking business data', this.professionalInfo);
+    
+    // Ensure we have business data
+    if (!this.professionalInfo.businesses || !Array.isArray(this.professionalInfo.businesses)) {
+      this.professionalInfo.businesses = [];
+    }
+    
+    // If we have a single business but no businesses array
+    if (this.professionalInfo.business && this.professionalInfo.businesses.length === 0) {
+      console.log('PRE-SAVE: Converting single business to array');
+      this.professionalInfo.businesses = [this.professionalInfo.business];
+    }
+    
+    // Ensure at least one business has required fields
+    const hasValidBusiness = this.professionalInfo.businesses.some(b => 
+      b && b.businessName && b.industry && b.description
+    );
+    
+    if (!hasValidBusiness) {
+      console.log('PRE-SAVE: No valid business found, checking legacy business');
+      
+      // Check legacy business as fallback
+      if (this.professionalInfo.business && 
+          this.professionalInfo.business.businessName && 
+          this.professionalInfo.business.industry && 
+          this.professionalInfo.business.description) {
+        
+        console.log('PRE-SAVE: Found valid legacy business, adding to businesses array');
+        // Add the legacy business to the array
+        this.professionalInfo.businesses = [this.professionalInfo.business];
+      } else {
+        console.log('PRE-SAVE: No valid business data found');
+      }
+    }
+  }
+  
+  next();
+});
 
 export default mongoose.models.MembershipRequest ||
   mongoose.model<IMembershipRequest>("MembershipRequest", MembershipRequestSchema);

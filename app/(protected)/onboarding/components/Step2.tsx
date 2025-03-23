@@ -1,6 +1,7 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import useMembershipRequest from "../hooks/useMembershipRequest";
 import {
   FormControl,
@@ -20,8 +21,11 @@ import {
   Spinner,
   Center,
   Checkbox,
+  Divider,
+  IconButton,
 } from "@chakra-ui/react";
-import { IEmploymentDetails, IBusiness, IStudent } from "@/models/MembershipRequest";
+import { IEmploymentDetails, IBusiness, IStudent, ISkills } from "@/models/MembershipRequest";
+import { AddIcon, DeleteIcon } from "@chakra-ui/icons";
 
 interface Step2Props {
   next: () => void;
@@ -61,14 +65,52 @@ export default function Step2({ next, back }: Step2Props) {
   const [selectedIndustryId, setSelectedIndustryId] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
-  const { employmentStatus, employmentDetails, business, student } = membershipData.professionalInfo;
-  const statuses = employmentStatus?.status?.split(',').filter(Boolean) || [];
+  const { employmentStatus, employmentDetails, businesses, business, student, skills } = membershipData.professionalInfo;
+  
+  // Memoize the statuses array to prevent unnecessary rerenders
+  const statuses = useMemo(() => 
+    employmentStatus?.status?.split(',').filter(Boolean) || [],
+    [employmentStatus?.status]
+  );
+
+  // Ensure there's always a value for employment status
+  useEffect(() => {
+    if (!employmentStatus || !employmentStatus.status || employmentStatus.status.trim() === '') {
+      console.log('Initializing employment status to empty string');
+      updateProfessionalInfo({ 
+        employmentStatus: { status: '' } 
+      });
+    }
+  }, []);
+
+  // Validate status format whenever it changes
+  useEffect(() => {
+    if (employmentStatus?.status && typeof employmentStatus.status !== 'string') {
+      console.error('Employment status has wrong type:', typeof employmentStatus.status);
+      // Convert to string if not already
+      updateProfessionalInfo({
+        employmentStatus: { status: String(employmentStatus.status) }
+      });
+    }
+  }, [employmentStatus?.status, updateProfessionalInfo]);
 
   const isStatusDisabled = (option: typeof employmentStatusOptions[0]) => {
-    if (option.group === "inactive") {
-      return statuses.some(s => ACTIVE_STATUSES.includes(s));
+    // Skip checks if no status is selected
+    if (statuses.length === 0) {
+      return false;
     }
-    return statuses.includes(INACTIVE_STATUS);
+    
+    // If we have the inactive status "other" selected, disable all active statuses
+    if (statuses.includes(INACTIVE_STATUS) && option.group === "active") {
+      return true;
+    }
+    
+    // If any active status is selected, disable the inactive status
+    if (statuses.some(s => ACTIVE_STATUSES.includes(s)) && option.value === INACTIVE_STATUS) {
+      return true;
+    }
+    
+    return false;
   };
 
   useEffect(() => {
@@ -122,11 +164,32 @@ export default function Step2({ next, back }: Step2Props) {
     fetchSpecializations();
   }, [selectedIndustryId, toast]);
 
+  useEffect(() => {
+    // Initialize businesses array if business_owner status is selected
+    if (statuses.includes('business_owner')) {
+      if (!businesses && business) {
+        // Convert old single business format to array
+        updateProfessionalInfo({
+          businesses: [business]
+        });
+      } else if (!businesses && !business) {
+        // Initialize with empty array if nothing exists
+        updateProfessionalInfo({
+          businesses: [{
+            businessName: "",
+            industry: "",
+            description: ""
+          }]
+        });
+      }
+    }
+  }, [statuses, businesses, business, updateProfessionalInfo]);
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (statuses.length === 0) {
-      newErrors.status = "Employment status is required";
+    if (!employmentStatus?.status || employmentStatus.status.trim() === '' || statuses.length === 0) {
+      newErrors.status = "Please select at least one employment status";
       return false;
     }
 
@@ -144,14 +207,20 @@ export default function Step2({ next, back }: Step2Props) {
     }
 
     if (statuses.includes("business_owner")) {
-      if (!business?.businessName?.trim()) {
-        newErrors.businessName = "Business/Service name is required";
-      }
-      if (!business?.industry?.trim()) {
-        newErrors.businessIndustry = "Industry is required";
-      }
-      if (!business?.description?.trim()) {
-        newErrors.description = "Business/Service description is required";
+      if (!businesses || businesses.length === 0) {
+        newErrors.businesses = "At least one business is required";
+      } else {
+        businesses.forEach((business, index) => {
+          if (!business.businessName?.trim()) {
+            newErrors[`businessName_${index}`] = "Business/Service name is required";
+          }
+          if (!business.industry?.trim()) {
+            newErrors[`businessIndustry_${index}`] = "Industry is required";
+          }
+          if (!business.description?.trim()) {
+            newErrors[`description_${index}`] = "Business/Service description is required";
+          }
+        });
       }
     }
 
@@ -165,6 +234,52 @@ export default function Step2({ next, back }: Step2Props) {
     if (validateForm()) {
       next();
     }
+  };
+
+  const handleAddBusiness = () => {
+    const newBusiness: IBusiness = {
+      businessName: "",
+      industry: "",
+      description: "",
+    };
+    
+    updateProfessionalInfo({
+      businesses: [...(businesses || []), newBusiness]
+    });
+  };
+
+  const handleRemoveBusiness = (index: number) => {
+    if (!businesses) return;
+    
+    const updatedBusinesses = [...businesses];
+    updatedBusinesses.splice(index, 1);
+    
+    updateProfessionalInfo({
+      businesses: updatedBusinesses
+    });
+  };
+
+  const handleBusinessChange = (index: number, field: keyof IBusiness, value: string) => {
+    if (!businesses) return;
+    
+    const updatedBusinesses = [...businesses];
+    updatedBusinesses[index] = {
+      ...updatedBusinesses[index],
+      [field]: value
+    };
+    
+    updateProfessionalInfo({
+      businesses: updatedBusinesses
+    });
+  };
+
+  const handleSkillsChange = (field: keyof ISkills, value: string) => {
+    updateProfessionalInfo({
+      skills: {
+        ...(skills || {}),
+        [field]: value
+      }
+    });
   };
 
   const renderEmployedFields = () => (
@@ -254,117 +369,121 @@ export default function Step2({ next, back }: Step2Props) {
   );
 
   const renderBusinessOwnerFields = () => (
-    <VStack spacing={4} align="stretch">
-      <FormControl isRequired isInvalid={!!errors.businessName}>
-        <FormLabel>Business/Service Name</FormLabel>
-        <Input
-          bg={inputBg}
-          value={business?.businessName || ""}
-          onChange={(e) =>
-            updateProfessionalInfo({
-              business: {
-                businessName: e.target.value,
-                industry: business?.industry || "",
-                description: business?.description || "",
-                website: business?.website,
-                phoneNumber: business?.phoneNumber,
-              } as IBusiness,
-            })
-          }
-        />
-        <FormErrorMessage>{errors.businessName}</FormErrorMessage>
-      </FormControl>
-
-      <FormControl isRequired isInvalid={!!errors.businessIndustry}>
-        <FormLabel>Industry</FormLabel>
-        <Select
-          bg={inputBg}
-          value={business?.industry || ""}
-          onChange={(e) =>
-            updateProfessionalInfo({
-              business: {
-                businessName: business?.businessName || "",
-                industry: e.target.value,
-                description: business?.description || "",
-                website: business?.website,
-                phoneNumber: business?.phoneNumber,
-              } as IBusiness,
-            })
-          }
-          placeholder="Select Industry"
+    <VStack spacing={6} align="stretch">
+      <HStack justifyContent="space-between">
+        <Text fontSize="lg" fontWeight="semibold">Business Information</Text>
+        <Button 
+          leftIcon={<AddIcon />} 
+          size="sm" 
+          colorScheme="blue" 
+          onClick={handleAddBusiness}
         >
-          {industries.map((industry) => (
-            <option key={industry.id} value={industry.id}>
-              {industry.name}
-            </option>
-          ))}
-        </Select>
-        <FormErrorMessage>{errors.businessIndustry}</FormErrorMessage>
-      </FormControl>
+          Add Business
+        </Button>
+      </HStack>
+      
+      {businesses?.length === 0 && (
+        <Text color="gray.500">Add at least one business or service</Text>
+      )}
+      
+      {businesses?.map((businessItem, index) => (
+        <Box 
+          key={index} 
+          p={4} 
+          borderWidth="1px" 
+          borderRadius="md" 
+          borderColor="gray.200"
+          position="relative"
+        >
+          <HStack justifyContent="space-between" mb={4}>
+            <Text fontWeight="medium">Business #{index + 1}</Text>
+            {businesses.length > 1 && (
+              <IconButton
+                aria-label="Remove business"
+                icon={<DeleteIcon />}
+                size="sm"
+                colorScheme="red"
+                variant="ghost"
+                onClick={() => handleRemoveBusiness(index)}
+              />
+            )}
+          </HStack>
+          
+          <VStack spacing={4} align="stretch">
+            <FormControl isRequired isInvalid={!!errors[`businessName_${index}`]}>
+              <FormLabel>Business/Service Name</FormLabel>
+              <Input
+                bg={inputBg}
+                value={businessItem.businessName || ""}
+                onChange={(e) => handleBusinessChange(index, 'businessName', e.target.value)}
+              />
+              <FormErrorMessage>{errors[`businessName_${index}`]}</FormErrorMessage>
+            </FormControl>
 
-      <FormControl isRequired isInvalid={!!errors.description}>
-        <FormLabel>Business/Service Description</FormLabel>
-        <Textarea
-          bg={inputBg}
-          value={business?.description || ""}
-          onChange={(e) =>
-            updateProfessionalInfo({
-              business: {
-                businessName: business?.businessName || "",
-                industry: business?.industry || "",
-                description: e.target.value,
-                website: business?.website,
-                phoneNumber: business?.phoneNumber,
-              } as IBusiness,
-            })
-          }
-          placeholder="Describe what your business does or list your services..."
-          rows={4}
-        />
-        <FormErrorMessage>{errors.description}</FormErrorMessage>
-      </FormControl>
+            <FormControl isRequired isInvalid={!!errors[`businessIndustry_${index}`]}>
+              <FormLabel>Industry</FormLabel>
+              <Select
+                bg={inputBg}
+                value={businessItem.industry || ""}
+                onChange={(e) => handleBusinessChange(index, 'industry', e.target.value)}
+                placeholder="Select Industry"
+              >
+                {industries.map((industry) => (
+                  <option key={industry.id} value={industry.id}>
+                    {industry.name}
+                  </option>
+                ))}
+              </Select>
+              <FormErrorMessage>{errors[`businessIndustry_${index}`]}</FormErrorMessage>
+            </FormControl>
 
-      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-        <FormControl>
-          <FormLabel>Phone Number (Optional)</FormLabel>
-          <Input
-            bg={inputBg}
-            type="tel"
-            value={business?.phoneNumber || ""}
-            onChange={(e) =>
-              updateProfessionalInfo({
-                business: {
-                  businessName: business?.businessName || "",
-                  industry: business?.industry || "",
-                  description: business?.description || "",
-                  website: business?.website,
-                  phoneNumber: e.target.value,
-                } as IBusiness,
-              })
-            }
-          />
-        </FormControl>
+            <FormControl isRequired isInvalid={!!errors[`description_${index}`]}>
+              <FormLabel>Business/Service Description</FormLabel>
+              <Textarea
+                bg={inputBg}
+                value={businessItem.description || ""}
+                onChange={(e) => handleBusinessChange(index, 'description', e.target.value)}
+                placeholder="Describe what your business does or list your services..."
+                rows={4}
+              />
+              <FormErrorMessage>{errors[`description_${index}`]}</FormErrorMessage>
+            </FormControl>
 
-        <FormControl>
-          <FormLabel>Website (Optional)</FormLabel>
-          <Input
-            bg={inputBg}
-            type="url"
-            value={business?.website || ""}
-            onChange={(e) =>
-              updateProfessionalInfo({
-                business: {
-                  businessName: business?.businessName || "",
-                  industry: business?.industry || "",
-                  description: business?.description || "",
-                  website: e.target.value,
-                  phoneNumber: business?.phoneNumber,
-                } as IBusiness,
-              })
-            }
-          />
-        </FormControl>
-      </SimpleGrid>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+              <FormControl>
+                <FormLabel>Business Phone Number (Optional)</FormLabel>
+                <Input
+                  bg={inputBg}
+                  type="tel"
+                  value={businessItem.phoneNumber || ""}
+                  onChange={(e) => handleBusinessChange(index, 'phoneNumber', e.target.value)}
+                />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Business Email (Optional)</FormLabel>
+                <Input
+                  bg={inputBg}
+                  type="email"
+                  value={businessItem.businessEmail || ""}
+                  onChange={(e) => handleBusinessChange(index, 'businessEmail', e.target.value)}
+                />
+              </FormControl>
+            </SimpleGrid>
+
+            <FormControl>
+              <FormLabel>Website (Optional)</FormLabel>
+              <Input
+                bg={inputBg}
+                type="url"
+                value={businessItem.website || ""}
+                onChange={(e) => handleBusinessChange(index, 'website', e.target.value)}
+              />
+            </FormControl>
+          </VStack>
+          {index < businesses.length - 1 && <Divider my={4} />}
+        </Box>
+      ))}
     </VStack>
   );
 
@@ -424,6 +543,33 @@ export default function Step2({ next, back }: Step2Props) {
     </VStack>
   );
 
+  const renderSkillsFields = () => (
+    <VStack spacing={4} align="stretch">
+      <Text fontSize="lg" fontWeight="semibold" mb={2}>
+        Skills Information (For Internal Use Only)
+      </Text>
+      <FormControl>
+        <FormLabel>Skills (Optional)</FormLabel>
+        <Input
+          bg={inputBg}
+          value={skills?.skills || ""}
+          onChange={(e) => handleSkillsChange('skills', e.target.value)}
+          placeholder="Enter your skills..."
+        />
+      </FormControl>
+      <FormControl>
+        <FormLabel>Additional Description (Optional)</FormLabel>
+        <Textarea
+          bg={inputBg}
+          value={skills?.description || ""}
+          onChange={(e) => handleSkillsChange('description', e.target.value)}
+          placeholder="Additional information about your skills and expertise..."
+          rows={4}
+        />
+      </FormControl>
+    </VStack>
+  );
+
   if (loading) {
     return (
       <Center h="400px">
@@ -452,12 +598,41 @@ export default function Step2({ next, back }: Step2Props) {
               <Checkbox
                 isChecked={statuses.includes(option.value)}
                 onChange={(e) => {
-                  const newStatus = e.target.checked
-                    ? [...statuses, option.value]
-                    : statuses.filter(s => s !== option.value);
-                  updateProfessionalInfo({
-                    employmentStatus: { status: newStatus.join(',') },
-                  });
+                  let newStatus = [...statuses];
+                  
+                  if (e.target.checked) {
+                    // Adding a status
+                    if (option.value === INACTIVE_STATUS) {
+                      // If selecting "other", clear all active statuses
+                      newStatus = [INACTIVE_STATUS];
+                    } else {
+                      // If selecting an active status, remove "other" if present
+                      newStatus = newStatus.filter(s => s !== INACTIVE_STATUS);
+                      // Add the new active status
+                      newStatus.push(option.value);
+                    }
+                  } else {
+                    // Removing a status
+                    newStatus = newStatus.filter(s => s !== option.value);
+                    
+                    // Don't default to "other" automatically
+                  }
+                  
+                  if (e.target.checked && option.value === 'business_owner' && (!businesses || businesses.length === 0)) {
+                    // Initialize with one empty business when business_owner is selected
+                    updateProfessionalInfo({
+                      employmentStatus: { status: newStatus.join(',') },
+                      businesses: [{
+                        businessName: "",
+                        industry: "",
+                        description: ""
+                      }]
+                    });
+                  } else {
+                    updateProfessionalInfo({
+                      employmentStatus: { status: newStatus.join(',') },
+                    });
+                  }
                 }}
                 isDisabled={isStatusDisabled(option)}
                 size="lg"
@@ -481,7 +656,6 @@ export default function Step2({ next, back }: Step2Props) {
           )}
           {statuses.includes('business_owner') && (
             <Box mb={8}>
-              <Text fontSize="lg" fontWeight="semibold" mb={4}>Business Information</Text>
               {renderBusinessOwnerFields()}
             </Box>
           )}
@@ -491,6 +665,10 @@ export default function Step2({ next, back }: Step2Props) {
               {renderStudentFields()}
             </Box>
           )}
+          
+          <Box mb={8}>
+            {renderSkillsFields()}
+          </Box>
         </Box>
       )}
 

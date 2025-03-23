@@ -43,7 +43,12 @@ export const defaultMembershipRequest: MembershipRequestData = {
     address: { line1: "", line2: "", city: "", state: "", zip: "", country: "" },
   },
   professionalInfo: {
-    employmentStatus: { status: "employed" },
+    employmentStatus: { status: "" },
+    businesses: [],
+    skills: {
+      skills: "",
+      description: ""
+    }
   },
   socialPresence: {
     linkedInProfile: "",
@@ -161,6 +166,63 @@ export const MembershipRequestProvider = ({ children }: { children: ReactNode })
         }
       };
 
+      // Check if employment status is missing or invalid
+      if (!dataToSubmit.professionalInfo.employmentStatus || 
+          !dataToSubmit.professionalInfo.employmentStatus.status ||
+          dataToSubmit.professionalInfo.employmentStatus.status.trim() === '') {
+        console.log('Employment status is missing or empty');
+        throw new Error('Employment status is required. Please go back and select your employment status.');
+      }
+
+      // Ensure employment status is a valid string
+      if (typeof dataToSubmit.professionalInfo.employmentStatus.status !== 'string') {
+        console.error('Employment status has wrong type:', typeof dataToSubmit.professionalInfo.employmentStatus.status);
+        dataToSubmit.professionalInfo.employmentStatus.status = String(dataToSubmit.professionalInfo.employmentStatus.status);
+      }
+
+      console.log('Employment Status:', JSON.stringify(dataToSubmit.professionalInfo.employmentStatus));
+
+      // Ensure business owner data is properly formatted
+      if (dataToSubmit.professionalInfo.employmentStatus.status.includes('business_owner')) {
+        console.log('Preparing business_owner data for submission');
+        
+        // Make sure the businesses array exists and is initialized
+        if (!Array.isArray(dataToSubmit.professionalInfo.businesses)) {
+          dataToSubmit.professionalInfo.businesses = [];
+        }
+        
+        // If the legacy business field exists but businesses array is empty, convert it
+        if (dataToSubmit.professionalInfo.business && 
+            dataToSubmit.professionalInfo.businesses.length === 0) {
+          console.log('Converting legacy business to array format');
+          dataToSubmit.professionalInfo.businesses = [dataToSubmit.professionalInfo.business];
+        }
+        
+        // Validate that each business in the array has the required fields
+        const validBusinesses = dataToSubmit.professionalInfo.businesses.filter(b => 
+          b && b.businessName && b.industry && b.description
+        );
+        
+        // Only keep valid businesses 
+        if (validBusinesses.length > 0) {
+          console.log(`Found ${validBusinesses.length} valid businesses out of ${dataToSubmit.professionalInfo.businesses.length}`);
+          dataToSubmit.professionalInfo.businesses = validBusinesses;
+        } else {
+          // No valid businesses found, check if we can use the single business object
+          if (dataToSubmit.professionalInfo.business && 
+              dataToSubmit.professionalInfo.business.businessName && 
+              dataToSubmit.professionalInfo.business.industry && 
+              dataToSubmit.professionalInfo.business.description) {
+            console.log('Using legacy business object as fallback');
+            dataToSubmit.professionalInfo.businesses = [dataToSubmit.professionalInfo.business];
+          } else {
+            // No valid business data found - this will fail validation, but that's OK as it should
+            console.warn('No valid business data found for business_owner status');
+            // Leave the businesses array as-is, don't add dummy data
+          }
+        }
+      }
+
       console.log('Submitting membership request with data:', JSON.stringify(dataToSubmit, null, 2));
       
       const res = await fetch("/api/membership-request", {
@@ -177,8 +239,29 @@ export const MembershipRequestProvider = ({ children }: { children: ReactNode })
             ? JSON.stringify(result.error) 
             : result.error;
         }
+        console.error("Submission failed with status:", res.status, "error:", errorMessage);
+        
+        // Employment status error detection
+        if (errorMessage.includes("employmentStatus") || errorMessage.includes("employment status")) {
+          throw new Error("Employment status validation failed. Please go back and select your status.");
+        }
+        
+        // Special handling for professional info errors
+        if (errorMessage.includes("professionalInfo")) {
+          console.error("Professional info validation error. Data sent:", 
+            JSON.stringify(dataToSubmit.professionalInfo, null, 2));
+          
+          // Surface a clearer error message to the user
+          if (dataToSubmit.professionalInfo.employmentStatus.status.includes('business_owner')) {
+            throw new Error("Business information is required. Please go back and complete the business details.");
+          } else if (dataToSubmit.professionalInfo.employmentStatus.status.includes('employed')) {
+            throw new Error("Employment information is required. Please go back and complete your employment details.");
+          }
+        }
+        
         throw new Error(errorMessage);
       }
+      console.log("Membership request submitted successfully:", result);
       return result;
     } catch (err) {
       console.error("Error submitting membership request", err);

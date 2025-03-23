@@ -13,6 +13,7 @@ export interface IEmployment {
     description?: string;
     website?: string;
     phoneNumber?: string;
+    businessEmail?: string;
     // For student
     schoolName?: string;
     fieldOfStudy?: string;
@@ -36,6 +37,11 @@ export interface IVisibility {
   };
   social: 'public' | 'private';
   phoneNumber: 'public' | 'private';
+}
+
+export interface ISkills {
+  skills?: string;
+  description?: string;
 }
 
 export interface IMember extends Document {
@@ -65,6 +71,7 @@ export interface IMember extends Document {
     };
   };
   employments: IEmployment[];
+  skills?: ISkills;
   socialPresence: {
     linkedInProfile?: string;
     personalWebsite?: string;
@@ -103,6 +110,7 @@ const EmploymentSchema = new Schema<IEmployment>({
     description: String,
     website: String,
     phoneNumber: String,
+    businessEmail: String,
     // Student fields
     schoolName: String,
     fieldOfStudy: String,
@@ -190,6 +198,10 @@ const MemberSchema = new Schema<IMember>({
     },
   },
   employments: [EmploymentSchema],
+  skills: {
+    skills: String,
+    description: String,
+  },
   socialPresence: {
     linkedInProfile: String,
     personalWebsite: String,

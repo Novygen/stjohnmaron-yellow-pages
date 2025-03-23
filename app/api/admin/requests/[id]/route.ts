@@ -1,7 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
 import MembershipRequest from '@/models/MembershipRequest';
 import Member from "@/models/Member";
 import dbConnect from '@/lib/dbConnect';
+import mongoose from 'mongoose';
 
 type tParams = Promise<{ id: string }>;
 
@@ -52,59 +54,83 @@ async function patchHandler(
     }
 
     if (action === 'approve') {
+      // Check if member already exists to prevent duplicates
+      const existingMember = await Member.findOne({ uid: membershipRequest.memberLogin.uid });
+      if (existingMember) {
+        console.log(`Member already exists for UID: ${membershipRequest.memberLogin.uid}, skipping creation`);
+        
+        // Just update the request status
+        try {
+          if (!mongoose.connection || !mongoose.connection.db) {
+            throw new Error("Database connection not established");
+          }
+          const db = mongoose.connection.db;
+          const collection = db.collection('membershiprequests');
+          
+          // Update directly using MongoDB driver
+          const updateResult = await collection.updateOne(
+            { _id: membershipRequest._id },
+            { 
+              $set: { 
+                isApproved: true,
+                notes: adminNotes || membershipRequest.notes 
+              } 
+            }
+          );
+          
+          if (!updateResult.acknowledged) {
+            throw new Error("Failed to update membership request");
+          }
+          
+          // Update the object to reflect changes
+          membershipRequest.isApproved = true;
+          if (adminNotes) membershipRequest.notes = adminNotes;
+          
+          return NextResponse.json({
+            ...membershipRequest.toJSON(),
+            message: "Request approved. Member already exists."
+          });
+        } catch (dbError) {
+          console.error("Database error:", dbError);
+          throw new Error("Failed to update membership request status");
+        }
+      }
+
       // Create new member from request
-      const employments = [];
-      const statuses = membershipRequest.professionalInfo.employmentStatus.status.split(',');
+      const employments = createEmploymentsFromRequest(membershipRequest);
+
+      // Debug skills data
+      console.log("Skills data:", JSON.stringify(membershipRequest.professionalInfo.skills, null, 2));
+      console.log("Social data:", JSON.stringify(membershipRequest.socialPresence, null, 2));
+
+      // Ensure all social fields are properly initialized
+      const socialData = {
+        linkedInProfile: membershipRequest.socialPresence?.linkedInProfile || '',
+        personalWebsite: membershipRequest.socialPresence?.personalWebsite || '',
+        instagramProfile: membershipRequest.socialPresence?.instagramProfile || '',
+        facebookProfile: membershipRequest.socialPresence?.facebookProfile || '',
+        xProfile: membershipRequest.socialPresence?.xProfile || '',
+      };
       
-      // Handle employed status
-      if (statuses.includes('employed') && membershipRequest.professionalInfo.employmentDetails) {
-        employments.push({
-          type: 'employed',
-          details: {
-            companyName: membershipRequest.professionalInfo.employmentDetails.companyName,
-            jobTitle: membershipRequest.professionalInfo.employmentDetails.jobTitle,
-            specialization: membershipRequest.professionalInfo.employmentDetails.specialization,
-          },
-          isActive: true,
-          startDate: new Date(),
-        });
-      }
-      
-      // Handle business owner status
-      if (statuses.includes('business_owner') && membershipRequest.professionalInfo.business) {
-        employments.push({
-          type: 'business_owner',
-          details: {
-            businessName: membershipRequest.professionalInfo.business.businessName,
-            industry: membershipRequest.professionalInfo.business.industry,
-            description: membershipRequest.professionalInfo.business.description,
-            website: membershipRequest.professionalInfo.business.website,
-            phoneNumber: membershipRequest.professionalInfo.business.phoneNumber,
-          },
-          isActive: true,
-          startDate: new Date(),
-        });
-      }
-      
-      // Handle student status
-      if (statuses.includes('student') && membershipRequest.professionalInfo.student) {
-        employments.push({
-          type: 'student',
-          details: {
-            schoolName: membershipRequest.professionalInfo.student.schoolName,
-            fieldOfStudy: membershipRequest.professionalInfo.student.fieldOfStudy,
-            expectedGraduationYear: membershipRequest.professionalInfo.student.expectedGraduationYear,
-          },
-          isActive: true,
-          startDate: new Date(),
-        });
-      }
+      console.log("Prepared social data:", JSON.stringify(socialData, null, 2));
 
       const newMember = new Member({
         uid: membershipRequest.memberLogin.uid,
-        personalDetails: membershipRequest.personalDetails,
+        personalDetails: {
+          ...membershipRequest.personalDetails,
+          // Include parish status if it exists
+          ...(membershipRequest.personalDetails.parishStatus && {
+            parishStatus: membershipRequest.personalDetails.parishStatus
+          })
+        },
         contactInformation: membershipRequest.contactInformation,
         employments: employments,
+        // Properly assign skills with fallback to empty object
+        skills: membershipRequest.professionalInfo.skills || {},
+        // Explicitly map all social media fields to ensure none are missed
+        socialPresence: socialData,
+        // Also preserve legacy social field with same explicit mapping
+        social: socialData,
         visibility: {
           profile: membershipRequest.privacyConsent.displayInYellowPages ? 'public' : 'private',
           contact: {
@@ -125,18 +151,84 @@ async function patchHandler(
         lastUpdatedBy: 'system'
       });
 
-      await newMember.save();
+      // Add additional logging to verify data before saving
+      console.log("New member social data:", JSON.stringify({
+        socialPresence: newMember.socialPresence,
+        social: newMember.social
+      }, null, 2));
+      console.log("New member skills data:", JSON.stringify(newMember.skills, null, 2));
+
+      try {
+        await newMember.save();
+        console.log(`Created new member for UID: ${membershipRequest.memberLogin.uid}`);
+      } catch (memberError) {
+        console.error("Failed to create member:", memberError);
+        throw new Error(`Failed to create member: ${memberError instanceof Error ? memberError.message : 'Unknown error'}`);
+      }
       
       // Update request status
-      membershipRequest.isApproved = true;
-      if (adminNotes) membershipRequest.notes = adminNotes;
-      await membershipRequest.save();
-      
+      try {
+        // Get a direct reference to the MongoDB collection
+        if (!mongoose.connection || !mongoose.connection.db) {
+          throw new Error("Database connection not established");
+        }
+        const db = mongoose.connection.db;
+        const collection = db.collection('membershiprequests');
+        
+        // Update directly using MongoDB driver
+        const updateResult = await collection.updateOne(
+          { _id: membershipRequest._id },
+          { 
+            $set: { 
+              isApproved: true,
+              notes: adminNotes || membershipRequest.notes 
+            } 
+          }
+        );
+        
+        if (!updateResult.acknowledged) {
+          throw new Error("Failed to update membership request");
+        }
+        
+        // Update the object to reflect changes
+        membershipRequest.isApproved = true;
+        if (adminNotes) membershipRequest.notes = adminNotes;
+      } catch (dbError) {
+        console.error("Database error:", dbError);
+        throw new Error("Failed to update membership request status");
+      }
     } else if (action === 'update') {
-      // Soft delete the current request to allow for resubmission
-      membershipRequest.softDeleted = true;
-      if (adminNotes) membershipRequest.notes = adminNotes;
-      await membershipRequest.save();
+      // Soft delete using direct MongoDB update
+      try {
+        // Get a direct reference to the MongoDB collection
+        if (!mongoose.connection || !mongoose.connection.db) {
+          throw new Error("Database connection not established");
+        }
+        const db = mongoose.connection.db;
+        const collection = db.collection('membershiprequests');
+        
+        // Update directly using MongoDB driver
+        const updateResult = await collection.updateOne(
+          { _id: membershipRequest._id },
+          { 
+            $set: { 
+              softDeleted: true,
+              notes: adminNotes || membershipRequest.notes 
+            } 
+          }
+        );
+        
+        if (!updateResult.acknowledged) {
+          throw new Error("Failed to update membership request");
+        }
+        
+        // Update the object to reflect changes
+        membershipRequest.softDeleted = true;
+        if (adminNotes) membershipRequest.notes = adminNotes;
+      } catch (dbError) {
+        console.error("Database error:", dbError);
+        throw new Error("Failed to update membership request status");
+      }
     } else {
       return NextResponse.json(
         { error: "Invalid action" },
@@ -152,6 +244,83 @@ async function patchHandler(
       { status: 500 }
     );
   }
+}
+
+// Helper function to create employments array from membership request
+function createEmploymentsFromRequest(membershipRequest: any) {
+  const employments = [];
+  const statuses = membershipRequest.professionalInfo.employmentStatus.status.split(',');
+  
+  // Handle employed status
+  if (statuses.includes('employed') && membershipRequest.professionalInfo.employmentDetails) {
+    employments.push({
+      type: 'employed',
+      details: {
+        companyName: membershipRequest.professionalInfo.employmentDetails.companyName,
+        jobTitle: membershipRequest.professionalInfo.employmentDetails.jobTitle,
+        specialization: membershipRequest.professionalInfo.employmentDetails.specialization,
+      },
+      isActive: true,
+      startDate: new Date(),
+    });
+  }
+  
+  // Handle business owner status - support for multiple businesses
+  if (statuses.includes('business_owner')) {
+    // Check if we have the new businesses array
+    if (membershipRequest.professionalInfo.businesses && 
+        membershipRequest.professionalInfo.businesses.length > 0) {
+      
+      // Process each business in the array
+      membershipRequest.professionalInfo.businesses.forEach((business: any) => {
+        employments.push({
+          type: 'business_owner',
+          details: {
+            businessName: business.businessName,
+            industry: business.industry,
+            description: business.description,
+            website: business.website || "",
+            phoneNumber: business.phoneNumber || "",
+            businessEmail: business.businessEmail || "",
+          },
+          isActive: true,
+          startDate: new Date(),
+        });
+      });
+    } 
+    // Fallback to legacy single business format
+    else if (membershipRequest.professionalInfo.business) {
+      employments.push({
+        type: 'business_owner',
+        details: {
+          businessName: membershipRequest.professionalInfo.business.businessName,
+          industry: membershipRequest.professionalInfo.business.industry,
+          description: membershipRequest.professionalInfo.business.description,
+          website: membershipRequest.professionalInfo.business.website || "",
+          phoneNumber: membershipRequest.professionalInfo.business.phoneNumber || "",
+          businessEmail: membershipRequest.professionalInfo.business.businessEmail || "",
+        },
+        isActive: true,
+        startDate: new Date(),
+      });
+    }
+  }
+  
+  // Handle student status
+  if (statuses.includes('student') && membershipRequest.professionalInfo.student) {
+    employments.push({
+      type: 'student',
+      details: {
+        schoolName: membershipRequest.professionalInfo.student.schoolName,
+        fieldOfStudy: membershipRequest.professionalInfo.student.fieldOfStudy,
+        expectedGraduationYear: membershipRequest.professionalInfo.student.expectedGraduationYear,
+      },
+      isActive: true,
+      startDate: new Date(),
+    });
+  }
+  
+  return employments;
 }
 
 export const GET = async (

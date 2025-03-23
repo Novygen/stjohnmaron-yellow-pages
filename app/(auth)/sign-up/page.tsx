@@ -71,7 +71,7 @@ export default function SignUpPage() {
       toast.promise(checkMembershipStatus(user.uid), {
         loading: 'Creating your account...',
         success: (submitted: boolean) => {
-          router.push(submitted ? "/dashboard" : "/onboarding");
+          router.push(submitted ? "/member" : "/onboarding");
           return 'Account created successfully!';
         },
         error: 'Failed to create account'
@@ -131,7 +131,7 @@ export default function SignUpPage() {
           toast.promise(checkMembershipStatus(user.uid), {
             loading: 'Checking your account...',
             success: (submitted: boolean) => {
-              router.push(submitted ? "/dashboard" : "/onboarding");
+              router.push(submitted ? "/member" : "/onboarding");
               return 'Welcome back!';
             },
             error: 'Failed to check account status'

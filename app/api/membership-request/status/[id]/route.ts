@@ -35,6 +35,7 @@ async function patchHandler(
         employments: createEmploymentsFromRequest(membershipRequest),
         socialPresence: membershipRequest.socialPresence,
         social: membershipRequest.socialPresence,
+        skills: membershipRequest.professionalInfo.skills,
         visibility: membershipRequest.privacyConsent ? mapVisibilitySettings({
           profile: 'public',
           contact: {
@@ -107,21 +108,43 @@ function createEmploymentsFromRequest(request: IMembershipRequest) {
     });
   }
 
-  // Handle business owner status
-  if (statuses.includes('business_owner') && request.professionalInfo.business) {
-    console.log('Adding business owner status');
-    employments.push({
-      type: 'business_owner' as const,
-      details: {
-        businessName: request.professionalInfo.business.businessName,
-        industry: request.professionalInfo.business.industry,
-        description: request.professionalInfo.business.description,
-        website: request.professionalInfo.business.website,
-        phoneNumber: request.professionalInfo.business.phoneNumber,
-      },
-      isActive: true,
-      startDate: new Date(),
-    });
+  // Handle business owner status - support for multiple businesses
+  if (statuses.includes('business_owner')) {
+    if (request.professionalInfo.businesses && request.professionalInfo.businesses.length > 0) {
+      console.log('Adding multiple businesses');
+      request.professionalInfo.businesses.forEach(business => {
+        employments.push({
+          type: 'business_owner' as const,
+          details: {
+            businessName: business.businessName,
+            industry: business.industry,
+            description: business.description,
+            website: business.website,
+            phoneNumber: business.phoneNumber,
+            businessEmail: business.businessEmail,
+          },
+          isActive: true,
+          startDate: new Date(),
+        });
+      });
+    }
+    // Fallback for backward compatibility
+    else if (request.professionalInfo.business) {
+      console.log('Adding single business (legacy format)');
+      employments.push({
+        type: 'business_owner' as const,
+        details: {
+          businessName: request.professionalInfo.business.businessName,
+          industry: request.professionalInfo.business.industry,
+          description: request.professionalInfo.business.description,
+          website: request.professionalInfo.business.website,
+          phoneNumber: request.professionalInfo.business.phoneNumber,
+          businessEmail: request.professionalInfo.business.businessEmail,
+        },
+        isActive: true,
+        startDate: new Date(),
+      });
+    }
   }
 
   // Handle student status

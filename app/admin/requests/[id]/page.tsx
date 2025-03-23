@@ -315,6 +315,62 @@ function RequestDetail({ params }: { params: Promise<{ id: string }> }) {
                         <Text>{request.professionalInfo.business.website}</Text>
                       </Box>
                     )}
+                    {request.professionalInfo.business.phoneNumber && (
+                      <Box>
+                        <Text fontWeight="bold">Business Phone Number</Text>
+                        <Text>{request.professionalInfo.business.phoneNumber}</Text>
+                      </Box>
+                    )}
+                    {request.professionalInfo.business.businessEmail && (
+                      <Box>
+                        <Text fontWeight="bold">Business Email</Text>
+                        <Text>{request.professionalInfo.business.businessEmail}</Text>
+                      </Box>
+                    )}
+                  </>
+                )}
+
+                {request.professionalInfo.businesses && request.professionalInfo.businesses.length > 0 && (
+                  <>
+                    <Divider />
+                    <Text fontWeight="bold" fontSize="md" mb={2}>Businesses</Text>
+                    {request.professionalInfo.businesses.map((business, index) => (
+                      <Box key={index} p={3} borderWidth="1px" borderRadius="md" mb={4}>
+                        <Text fontWeight="semibold" fontSize="md" mb={2}>Business #{index + 1}</Text>
+                        <VStack spacing={3} align="stretch">
+                          <Box>
+                            <Text fontWeight="bold">Business Name</Text>
+                            <Text>{business.businessName}</Text>
+                          </Box>
+                          <Box>
+                            <Text fontWeight="bold">Industry</Text>
+                            <Text>{getIndustryName(business.industry)}</Text>
+                          </Box>
+                          <Box>
+                            <Text fontWeight="bold">Description</Text>
+                            <Text>{business.description}</Text>
+                          </Box>
+                          {business.website && (
+                            <Box>
+                              <Text fontWeight="bold">Website</Text>
+                              <Text>{business.website}</Text>
+                            </Box>
+                          )}
+                          {business.phoneNumber && (
+                            <Box>
+                              <Text fontWeight="bold">Business Phone Number</Text>
+                              <Text>{business.phoneNumber}</Text>
+                            </Box>
+                          )}
+                          {business.businessEmail && (
+                            <Box>
+                              <Text fontWeight="bold">Business Email</Text>
+                              <Text>{business.businessEmail}</Text>
+                            </Box>
+                          )}
+                        </VStack>
+                      </Box>
+                    ))}
                   </>
                 )}
 
@@ -329,6 +385,25 @@ function RequestDetail({ params }: { params: Promise<{ id: string }> }) {
                       <Text fontWeight="bold">Field of Study</Text>
                       <Text>{request.professionalInfo.student.fieldOfStudy}</Text>
                     </Box>
+                  </>
+                )}
+
+                {request.professionalInfo.skills && (
+                  <>
+                    <Divider />
+                    <Text fontWeight="bold" fontSize="md" mb={2}>Skills (Internal Use Only)</Text>
+                    {request.professionalInfo.skills.skills && (
+                      <Box>
+                        <Text fontWeight="bold">Skills</Text>
+                        <Text>{request.professionalInfo.skills.skills}</Text>
+                      </Box>
+                    )}
+                    {request.professionalInfo.skills.description && (
+                      <Box>
+                        <Text fontWeight="bold">Skills Description</Text>
+                        <Text>{request.professionalInfo.skills.description}</Text>
+                      </Box>
+                    )}
                   </>
                 )}
               </VStack>

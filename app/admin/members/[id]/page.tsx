@@ -23,6 +23,7 @@ import {
   Badge,
   IconButton,
   Flex,
+  Textarea,
 } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
@@ -290,6 +291,7 @@ function MemberDetailsPage() {
                 <Tab>Personal Info</Tab>
                 <Tab>Contact</Tab>
                 <Tab>Employment</Tab>
+                <Tab>Skills</Tab>
                 <Tab>Privacy</Tab>
               </TabList>
 
@@ -428,15 +430,9 @@ function MemberDetailsPage() {
                         <FormLabel>Email</FormLabel>
                         <Input
                           value={member.contactInformation.primaryEmail}
-                          onChange={(e) =>
-                            setMember({
-                              ...member,
-                              contactInformation: {
-                                ...member.contactInformation,
-                                primaryEmail: e.target.value,
-                              },
-                            })
-                          }
+                          isReadOnly
+                          bg="gray.100"
+                          cursor="not-allowed"
                         />
                       </FormControl>
                     </GridItem>
@@ -451,6 +447,120 @@ function MemberDetailsPage() {
                               contactInformation: {
                                 ...member.contactInformation,
                                 primaryPhoneNumber: e.target.value,
+                              },
+                            })
+                          }
+                        />
+                      </FormControl>
+                    </GridItem>
+                    
+                    <GridItem colSpan={2}>
+                      <Heading size="sm" mt={6} mb={3}>Social Media</Heading>
+                    </GridItem>
+                    
+                    <GridItem>
+                      <FormControl>
+                        <FormLabel>LinkedIn</FormLabel>
+                        <Input
+                          value={member.socialPresence?.linkedInProfile || member.social?.linkedInProfile || ''}
+                          onChange={(e) =>
+                            setMember({
+                              ...member,
+                              socialPresence: {
+                                ...member.socialPresence,
+                                linkedInProfile: e.target.value,
+                              },
+                              social: {
+                                ...member.social,
+                                linkedInProfile: e.target.value,
+                              },
+                            })
+                          }
+                        />
+                      </FormControl>
+                    </GridItem>
+                    
+                    <GridItem>
+                      <FormControl>
+                        <FormLabel>Personal Website</FormLabel>
+                        <Input
+                          value={member.socialPresence?.personalWebsite || member.social?.personalWebsite || ''}
+                          onChange={(e) =>
+                            setMember({
+                              ...member,
+                              socialPresence: {
+                                ...member.socialPresence,
+                                personalWebsite: e.target.value,
+                              },
+                              social: {
+                                ...member.social,
+                                personalWebsite: e.target.value,
+                              },
+                            })
+                          }
+                        />
+                      </FormControl>
+                    </GridItem>
+                    
+                    <GridItem>
+                      <FormControl>
+                        <FormLabel>Instagram</FormLabel>
+                        <Input
+                          value={member.socialPresence?.instagramProfile || member.social?.instagramProfile || ''}
+                          onChange={(e) =>
+                            setMember({
+                              ...member,
+                              socialPresence: {
+                                ...member.socialPresence,
+                                instagramProfile: e.target.value,
+                              },
+                              social: {
+                                ...member.social,
+                                instagramProfile: e.target.value,
+                              },
+                            })
+                          }
+                        />
+                      </FormControl>
+                    </GridItem>
+                    
+                    <GridItem>
+                      <FormControl>
+                        <FormLabel>Facebook</FormLabel>
+                        <Input
+                          value={member.socialPresence?.facebookProfile || member.social?.facebookProfile || ''}
+                          onChange={(e) =>
+                            setMember({
+                              ...member,
+                              socialPresence: {
+                                ...member.socialPresence,
+                                facebookProfile: e.target.value,
+                              },
+                              social: {
+                                ...member.social,
+                                facebookProfile: e.target.value,
+                              },
+                            })
+                          }
+                        />
+                      </FormControl>
+                    </GridItem>
+                    
+                    <GridItem>
+                      <FormControl>
+                        <FormLabel>X / Twitter</FormLabel>
+                        <Input
+                          value={member.socialPresence?.xProfile || member.social?.xProfile || ''}
+                          onChange={(e) =>
+                            setMember({
+                              ...member,
+                              socialPresence: {
+                                ...member.socialPresence,
+                                xProfile: e.target.value,
+                              },
+                              social: {
+                                ...member.social,
+                                xProfile: e.target.value,
                               },
                             })
                           }
@@ -572,6 +682,52 @@ function MemberDetailsPage() {
                                       />
                                     </FormControl>
                                   </GridItem>
+                                  <GridItem>
+                                    <FormControl>
+                                      <FormLabel>Business Phone Number</FormLabel>
+                                      <Input
+                                        value={employment.details.phoneNumber || ''}
+                                        onChange={(e) =>
+                                          handleEmploymentChange(
+                                            index,
+                                            'details.phoneNumber',
+                                            e.target.value
+                                          )
+                                        }
+                                      />
+                                    </FormControl>
+                                  </GridItem>
+                                  <GridItem>
+                                    <FormControl>
+                                      <FormLabel>Business Email</FormLabel>
+                                      <Input
+                                        value={employment.details.businessEmail || ''}
+                                        onChange={(e) =>
+                                          handleEmploymentChange(
+                                            index,
+                                            'details.businessEmail',
+                                            e.target.value
+                                          )
+                                        }
+                                      />
+                                    </FormControl>
+                                  </GridItem>
+                                  <GridItem colSpan={2}>
+                                    <FormControl>
+                                      <FormLabel>Description</FormLabel>
+                                      <Textarea
+                                        value={employment.details.description || ''}
+                                        onChange={(e) =>
+                                          handleEmploymentChange(
+                                            index,
+                                            'details.description',
+                                            e.target.value
+                                          )
+                                        }
+                                        rows={3}
+                                      />
+                                    </FormControl>
+                                  </GridItem>
                                 </>
                               )}
 
@@ -636,6 +792,46 @@ function MemberDetailsPage() {
                       </Card>
                     ))}
                   </Stack>
+                </TabPanel>
+
+                <TabPanel>
+                  <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap={4}>
+                    <GridItem colSpan={2}>
+                      <FormControl>
+                        <FormLabel>Skills</FormLabel>
+                        <Input
+                          value={member.skills?.skills || ''}
+                          onChange={(e) =>
+                            setMember({
+                              ...member,
+                              skills: {
+                                ...member.skills,
+                                skills: e.target.value,
+                              },
+                            })
+                          }
+                        />
+                      </FormControl>
+                    </GridItem>
+                    <GridItem colSpan={2}>
+                      <FormControl>
+                        <FormLabel>Skills Description</FormLabel>
+                        <Textarea
+                          value={member.skills?.description || ''}
+                          onChange={(e) =>
+                            setMember({
+                              ...member,
+                              skills: {
+                                ...member.skills,
+                                description: e.target.value,
+                              },
+                            })
+                          }
+                          rows={4}
+                        />
+                      </FormControl>
+                    </GridItem>
+                  </Grid>
                 </TabPanel>
 
                 <TabPanel>
