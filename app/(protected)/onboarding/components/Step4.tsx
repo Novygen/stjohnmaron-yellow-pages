@@ -130,7 +130,7 @@ export default function Step4({ next, back }: Step4Props) {
                 List me in the Member Directory
               </Checkbox>
               <Text fontSize="sm" color="gray.600" mt={2}>
-                Your name and professional information will be visible to other members in our directory.
+                By clicking, you consent to having your name and professional details publicly available on the web.
               </Text>
             </FormControl>
 
@@ -145,7 +145,7 @@ export default function Step4({ next, back }: Step4Props) {
                 Display my phone number in the directory
               </Checkbox>
               <Text fontSize="sm" color="gray.600" mt={2}>
-                Your phone number will be visible to other members if you enable this option.
+                By clicking, you consent to having your personal phone number available on the web.
               </Text>
             </FormControl>
           </VStack>
