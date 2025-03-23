@@ -367,6 +367,54 @@ function MemberDetailsPage() {
                         />
                       </FormControl>
                     </GridItem>
+                    <GridItem>
+                      <FormControl>
+                        <FormLabel>Parish Status</FormLabel>
+                        <Select
+                          value={member.personalDetails.parishStatus?.status || 'member'}
+                          onChange={(e) =>
+                            setMember({
+                              ...member,
+                              personalDetails: {
+                                ...member.personalDetails,
+                                parishStatus: {
+                                  status: e.target.value as 'member' | 'visitor' | 'other_parish',
+                                  ...(member.personalDetails.parishStatus?.otherParishName 
+                                    ? { otherParishName: member.personalDetails.parishStatus.otherParishName } 
+                                    : {}),
+                                },
+                              },
+                            })
+                          }
+                        >
+                          <option value="member">Member of St John Maron Parish</option>
+                          <option value="visitor">Visitor</option>
+                          <option value="other_parish">Member of Another Parish</option>
+                        </Select>
+                      </FormControl>
+                    </GridItem>
+                    {member.personalDetails.parishStatus?.status === 'other_parish' && (
+                      <GridItem>
+                        <FormControl>
+                          <FormLabel>Other Parish Name</FormLabel>
+                          <Input
+                            value={member.personalDetails.parishStatus.otherParishName || ''}
+                            onChange={(e) =>
+                              setMember({
+                                ...member,
+                                personalDetails: {
+                                  ...member.personalDetails,
+                                  parishStatus: {
+                                    status: 'other_parish',
+                                    otherParishName: e.target.value,
+                                  },
+                                },
+                              })
+                            }
+                          />
+                        </FormControl>
+                      </GridItem>
+                    )}
                   </Grid>
                 </TabPanel>
 

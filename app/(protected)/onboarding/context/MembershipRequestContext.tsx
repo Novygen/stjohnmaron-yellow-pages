@@ -29,7 +29,14 @@ export interface MembershipRequestData {
 
 export const defaultMembershipRequest: MembershipRequestData = {
   memberLogin: { uid: "" },
-  personalDetails: { firstName: "", lastName: "", ageRange: "" },
+  personalDetails: { 
+    firstName: "", 
+    lastName: "", 
+    ageRange: "",
+    parishStatus: { 
+      status: "member" 
+    }
+  },
   contactInformation: {
     primaryPhoneNumber: "",
     primaryEmail: "",

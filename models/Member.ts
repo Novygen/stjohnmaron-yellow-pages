@@ -47,6 +47,10 @@ export interface IMember extends Document {
     ageRange: string;
     state?: string;
     profileImage?: string;
+    parishStatus?: {
+      status: 'member' | 'visitor' | 'other_parish';
+      otherParishName?: string;
+    };
   };
   contactInformation: {
     primaryEmail: string;
@@ -165,6 +169,13 @@ const MemberSchema = new Schema<IMember>({
     ageRange: { type: String, required: true },
     state: String,
     profileImage: String,
+    parishStatus: {
+      status: {
+        type: String,
+        enum: ['member', 'visitor', 'other_parish'],
+      },
+      otherParishName: String,
+    },
   },
   contactInformation: {
     primaryEmail: { type: String, required: true },

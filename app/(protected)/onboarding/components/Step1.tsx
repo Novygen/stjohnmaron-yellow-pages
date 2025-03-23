@@ -51,6 +51,9 @@ export default function Step1({ next }: Step1Props) {
   const { personalDetails, contactInformation } = membershipData;
   const address = contactInformation.address || {};
 
+  // Add new state for otherParishName
+  const [otherParishName, setOtherParishName] = useState<string>(personalDetails.parishStatus?.otherParishName || "");
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -87,6 +90,11 @@ export default function Step1({ next }: Step1Props) {
           newErrors.zip = "ZIP is required if providing an address";
         }
       }
+    }
+
+    // Add validation for other parish name if status is 'other_parish'
+    if (personalDetails.parishStatus?.status === 'other_parish' && !otherParishName.trim()) {
+      newErrors.otherParishName = "Please specify the parish name";
     }
 
     setErrors(newErrors);
@@ -175,7 +183,7 @@ export default function Step1({ next }: Step1Props) {
 
         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
           <FormControl isRequired isInvalid={!!errors.phone}>
-            <FormLabel>Phone Number</FormLabel>
+            <FormLabel>Personal Phone Number</FormLabel>
             <Input
               bg={inputBg}
               type="tel"
@@ -186,17 +194,20 @@ export default function Step1({ next }: Step1Props) {
           </FormControl>
 
           <FormControl isRequired isInvalid={!!errors.email}>
-            <FormLabel>Email</FormLabel>
+            <FormLabel>Personal Email</FormLabel>
             <Input bg={inputBg} type="email" value={userEmail || ""} readOnly />
             <FormErrorMessage>{errors.email}</FormErrorMessage>
           </FormControl>
         </SimpleGrid>
 
+
+      <Divider my={6} />
+
         {/* Optional Address Section */}
         <Box>
           <Flex justify="space-between" align="center" onClick={onAddressToggle} cursor="pointer" mb={2}>
             <Text fontWeight="semibold" color="blue.600">
-              Address (Optional)
+              Home Address (Optional)
             </Text>
             <IconButton
               aria-label={isAddressOpen ? "Collapse address section" : "Expand address section"}
@@ -295,6 +306,64 @@ export default function Step1({ next }: Step1Props) {
             </VStack>
           </Collapse>
         </Box>
+      </VStack>
+
+      <Divider my={6} />
+
+      {/* Parish Status Section */}
+      <VStack spacing={4} align="stretch">
+        <Text fontWeight="semibold" color="blue.600">
+          Parish Affiliation
+        </Text>
+        <Text fontSize="sm" color="gray.600">
+          Please select your status (will not be displayed on the directory)
+        </Text>
+        <FormControl isRequired>
+          <FormLabel>Parish Status</FormLabel>
+          <Select
+            bg={inputBg}
+            value={personalDetails.parishStatus?.status || ""}
+            onChange={(e) => {
+              const status = e.target.value as 'member' | 'visitor' | 'other_parish' | "";
+              if (status) {
+                updatePersonalDetails({ 
+                  parishStatus: { 
+                    status,
+                    otherParishName: status === 'other_parish' ? otherParishName : undefined 
+                  }
+                });
+              } else {
+                updatePersonalDetails({ parishStatus: undefined });
+              }
+            }}
+            placeholder="Select your status"
+          >
+            <option value="member">Member of St John Maron Parish</option>
+            <option value="visitor">Visitor</option>
+            <option value="other_parish">Member of Another Parish</option>
+          </Select>
+        </FormControl>
+
+        {personalDetails.parishStatus?.status === 'other_parish' && (
+          <FormControl isInvalid={!!errors.otherParishName}>
+            <FormLabel>Name of Parish</FormLabel>
+            <Input
+              bg={inputBg}
+              value={otherParishName}
+              onChange={(e) => {
+                setOtherParishName(e.target.value);
+                updatePersonalDetails({ 
+                  parishStatus: { 
+                    status: 'other_parish',
+                    otherParishName: e.target.value
+                  }
+                });
+              }}
+              placeholder="Please enter the name of your parish"
+            />
+            <FormErrorMessage>{errors.otherParishName}</FormErrorMessage>
+          </FormControl>
+        )}
       </VStack>
 
       <Button

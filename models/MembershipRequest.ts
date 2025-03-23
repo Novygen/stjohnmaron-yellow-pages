@@ -13,6 +13,10 @@ export interface IPersonalDetails {
   middleName?: string;
   ageRange: string;
   state?: string;
+  parishStatus?: {
+    status: 'member' | 'visitor' | 'other_parish';
+    otherParishName?: string;
+  };
 }
 
 export interface IAddress {

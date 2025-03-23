@@ -13,6 +13,10 @@ const membershipRequestSchema = z.object({
     middleName: z.string().optional(),
     ageRange: z.string(),
     state: z.string().optional(),
+    parishStatus: z.object({
+      status: z.enum(['member', 'visitor', 'other_parish']),
+      otherParishName: z.string().optional(),
+    }).optional(),
   }),
   contactInformation: z.object({
     primaryPhoneNumber: z.string(),

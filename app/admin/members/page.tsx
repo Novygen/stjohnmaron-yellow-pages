@@ -32,6 +32,7 @@ function MembersPage() {
   const [members, setMembers] = useState<IMember[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [parishFilter, setParishFilter] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [user] = useAuthState(auth);
   const toast = useToast();
@@ -75,13 +76,17 @@ function MembersPage() {
 
   const filteredMembers = members.filter((member) => {
     const matchesStatus = statusFilter === 'all' || member.status === statusFilter;
+    
+    const matchesParish = parishFilter === 'all' || 
+      (member.personalDetails.parishStatus?.status === parishFilter) || 
+      (parishFilter === 'other_parish' && member.personalDetails.parishStatus?.status === 'other_parish');
 
     const matchesSearch = 
       member.personalDetails.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.personalDetails.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.contactInformation.primaryEmail.toLowerCase().includes(searchTerm.toLowerCase());
 
-    return matchesStatus && matchesSearch;
+    return matchesStatus && matchesSearch && matchesParish;
   });
 
   const getStatusBadge = (status: string) => {
@@ -90,6 +95,24 @@ function MembersPage() {
       inactive: { colorScheme: 'gray', label: 'Inactive' },
       suspended: { colorScheme: 'red', label: 'Suspended' },
     }[status] || { colorScheme: 'gray', label: status };
+
+    return <Badge colorScheme={statusProps.colorScheme}>{statusProps.label}</Badge>;
+  };
+
+  const getParishStatusBadge = (member: IMember) => {
+    if (!member.personalDetails.parishStatus) return null;
+    
+    const statusMap = {
+      member: { colorScheme: 'green', label: 'Member' },
+      visitor: { colorScheme: 'blue', label: 'Visitor' },
+      other_parish: { 
+        colorScheme: 'purple', 
+        label: member.personalDetails.parishStatus.otherParishName || 'Other Parish'
+      },
+    };
+    
+    const status = member.personalDetails.parishStatus.status;
+    const statusProps = statusMap[status] || { colorScheme: 'gray', label: 'Unknown' };
 
     return <Badge colorScheme={statusProps.colorScheme}>{statusProps.label}</Badge>;
   };
@@ -146,6 +169,18 @@ function MembersPage() {
                     <option value="suspended">Suspended</option>
                   </Select>
                   
+                  <Select 
+                    value={parishFilter}
+                    onChange={(e) => setParishFilter(e.target.value)}
+                    size="sm"
+                    w={{ base: '100%', sm: '180px' }}
+                  >
+                    <option value="all">All Parish Status</option>
+                    <option value="member">Parish Members</option>
+                    <option value="visitor">Visitors</option>
+                    <option value="other_parish">Other Parishes</option>
+                  </Select>
+                  
                   <Input
                     placeholder="Search by name or email"
                     value={searchTerm}
@@ -164,6 +199,7 @@ function MembersPage() {
                       <Th display={{ base: 'none', md: 'table-cell' }}>Email</Th>
                       <Th display={{ base: 'none', lg: 'table-cell' }}>Employment</Th>
                       <Th>Status</Th>
+                      <Th display={{ base: 'none', md: 'table-cell' }}>Parish</Th>
                       <Th>Actions</Th>
                     </Tr>
                   </Thead>
@@ -193,6 +229,7 @@ function MembersPage() {
                           </Text>
                         </Td>
                         <Td>{getStatusBadge(member.status)}</Td>
+                        <Td display={{ base: 'none', md: 'table-cell' }}>{getParishStatusBadge(member)}</Td>
                         <Td>
                           <Link href={`/admin/members/${member._id}`} passHref>
                             <Button size="sm" colorScheme="blue">View Details</Button>

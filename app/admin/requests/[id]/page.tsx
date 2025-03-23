@@ -202,6 +202,20 @@ function RequestDetail({ params }: { params: Promise<{ id: string }> }) {
                   <Text fontWeight="bold">State</Text>
                   <Text>{request.personalDetails.state || 'N/A'}</Text>
                 </Box>
+                {request.personalDetails.parishStatus && (
+                  <Box>
+                    <Text fontWeight="bold">Parish Status</Text>
+                    <Text>
+                      {request.personalDetails.parishStatus.status === 'member' && 'Member of St John Maron Parish'}
+                      {request.personalDetails.parishStatus.status === 'visitor' && 'Visitor'}
+                      {request.personalDetails.parishStatus.status === 'other_parish' && (
+                        <>
+                          Member of Another Parish: {request.personalDetails.parishStatus.otherParishName || 'Not specified'}
+                        </>
+                      )}
+                    </Text>
+                  </Box>
+                )}
               </VStack>
             </CardBody>
           </Card>
