@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, Filter, Building, Briefcase, GraduationCap, UserPlus, LogIn, RefreshCw } from "lucide-react";
+import { Search, RefreshCw, Building, Briefcase, GraduationCap, UserPlus, LogIn } from "lucide-react";
 
 interface Industry {
   id: string;
@@ -58,7 +58,6 @@ export default function Home() {
     specialization: "",
     search: ""
   });
-  const [showFilters, setShowFilters] = useState(false);
   
   // Fetch industries and specializations
   useEffect(() => {
@@ -95,7 +94,29 @@ export default function Home() {
     const fetchMembers = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/directory');
+        
+        // Build URL with filter parameters
+        let url = '/api/directory';
+        const params = new URLSearchParams();
+        
+        if (filters.industry) {
+          params.append('industry', filters.industry);
+        }
+        
+        if (filters.specialization) {
+          params.append('specialization', filters.specialization);
+        }
+        
+        if (filters.search) {
+          params.append('search', filters.search);
+        }
+        
+        // Add query parameters if any exist
+        if (params.toString()) {
+          url += `?${params.toString()}`;
+        }
+        
+        const response = await fetch(url);
         
         if (!response.ok) {
           throw new Error('Failed to fetch members');
@@ -113,63 +134,7 @@ export default function Home() {
     };
     
     fetchMembers();
-  }, []);
-  
-  // Apply filters when changed
-  useEffect(() => {
-    if (members.length === 0) return;
-    
-    // Apply filters
-    let result = [...members];
-    
-    if (filters.industry) {
-      // Find the selected industry by name
-      const industry = industries.find(ind => ind.id === filters.industry)?.name;
-      if (industry) {
-        result = result.filter(member => 
-          member.employmentStatuses.some(emp => 
-            emp.type === 'business_owner' && emp.industry === industry
-          )
-        );
-      }
-    }
-    
-    if (filters.specialization) {
-      // Find the selected specialization by name
-      const specialization = specializations.find(spec => spec.id === filters.specialization)?.name;
-      if (specialization) {
-        result = result.filter(member => 
-          member.employmentStatuses.some(emp => 
-            emp.type === 'employed' && emp.specialization === specialization
-          )
-        );
-      }
-    }
-    
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      result = result.filter(member => {
-        const fullName = member.fullName.toLowerCase();
-        
-        // Check employment-related fields across all employment statuses
-        const matchesEmployment = member.employmentStatuses.some(emp => {
-          const companyName = emp.companyName?.toLowerCase() || '';
-          const businessName = emp.businessName?.toLowerCase() || '';
-          const jobTitle = emp.jobTitle?.toLowerCase() || '';
-          
-          return (
-            companyName.includes(searchLower) || 
-            businessName.includes(searchLower) || 
-            jobTitle.includes(searchLower)
-          );
-        });
-        
-        return fullName.includes(searchLower) || matchesEmployment;
-      });
-    }
-    
-    setFilteredMembers(result);
-  }, [filters, members, industries, specializations]);
+  }, [filters]); // Re-fetch when filters change
   
   const handleFilterChange = (key: keyof FilterOptions, value: string) => {
     // If changing industry, reset specialization
@@ -262,47 +227,26 @@ export default function Home() {
           
           {/* Search and filters */}
           <div className="px-4 py-5 sm:p-6 border-b border-gray-200">
-            <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+            <div className="flex flex-col space-y-4">
               {/* Search input */}
-              <div className="relative flex-1">
+              <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Search className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
                   type="text"
-                  placeholder="Search by name, company or job title..."
+                  placeholder="Search by name, company, job title, school..."
                   value={filters.search}
                   onChange={(e) => handleFilterChange('search', e.target.value)}
                   className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 />
               </div>
               
-              {/* Filter button */}
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                disabled={isLoadingFilters}
-              >
-                {isLoadingFilters ? (
-                  <RefreshCw className="h-5 w-5 mr-2 text-gray-400 animate-spin" />
-                ) : (
-                  <Filter className="h-5 w-5 mr-2 text-gray-400" />
-                )}
-                Filters
-                {(filters.industry || filters.specialization) && (
-                  <span className="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                    {(filters.industry ? 1 : 0) + (filters.specialization ? 1 : 0)}
-                  </span>
-                )}
-              </button>
-            </div>
-            
-            {/* Filter options */}
-            {showFilters && (
-              <div className="mt-4 p-4 bg-gray-50 rounded-md">
-                <div className="flex flex-col md:flex-row gap-4">
+              {/* Filter options - always visible */}
+              <div className="p-4 bg-gray-50 rounded-md">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Industry filter */}
-                  <div className="flex-1">
+                  <div>
                     <label htmlFor="industry" className="block text-sm font-medium text-gray-700 mb-1">
                       Industry
                     </label>
@@ -323,7 +267,7 @@ export default function Home() {
                   </div>
                   
                   {/* Specialization filter */}
-                  <div className="flex-1">
+                  <div>
                     <label htmlFor="specialization" className="block text-sm font-medium text-gray-700 mb-1">
                       Specialization
                     </label>
@@ -348,14 +292,15 @@ export default function Home() {
                     <button
                       onClick={resetFilters}
                       disabled={!filters.industry && !filters.specialization && !filters.search}
-                      className="inline-flex items-center justify-center w-full md:w-auto px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="inline-flex items-center justify-center w-full px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
+                      <RefreshCw className="h-4 w-4 mr-2" />
                       Reset Filters
                     </button>
                   </div>
                 </div>
               </div>
-            )}
+            </div>
           </div>
           
           {/* Members listing */}
