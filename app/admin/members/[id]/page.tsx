@@ -25,7 +25,7 @@ import {
   Flex,
   Textarea,
 } from '@chakra-ui/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { IMember, IEmployment } from '@/models/Member';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -44,6 +44,71 @@ function MemberDetailsPage() {
   const [user] = useAuthState(auth);
   const params = useParams();
   const toast = useToast();
+  
+  const [industries, setIndustries] = useState<Array<{id: string, name: string}>>([]);
+  const [specializations, setSpecializations] = useState<{[industryId: string]: Array<{id: string, name: string}>}>({});
+  const [isLoadingIndustries, setIsLoadingIndustries] = useState(false);
+
+  const fetchIndustries = useCallback(async () => {
+    setIsLoadingIndustries(true);
+    try {
+      const response = await fetch('/api/industries');
+      if (!response.ok) throw new Error('Failed to fetch industries');
+      
+      const data = await response.json();
+      setIndustries(data);
+    } catch (error) {
+      console.error('Failed to fetch industries:', error);
+      toast({
+        title: 'Error loading industries',
+        status: 'error',
+        duration: 3000,
+      });
+    } finally {
+      setIsLoadingIndustries(false);
+    }
+  }, [toast]);
+
+  const fetchSpecializations = useCallback(async (industryId: string) => {
+    if (!industryId || specializations[industryId]) return;
+    
+    try {
+      const response = await fetch(`/api/specializations?industryId=${industryId}`);
+      if (!response.ok) throw new Error('Failed to fetch specializations');
+      
+      const data = await response.json();
+      setSpecializations(prev => ({
+        ...prev,
+        [industryId]: data
+      }));
+    } catch (error) {
+      console.error('Failed to fetch specializations:', error);
+      toast({
+        title: 'Error loading specializations',
+        status: 'error',
+        duration: 3000,
+      });
+    }
+  }, [specializations, toast]);
+
+  const getIndustryForSpecialization = useCallback(async (specializationId: string) => {
+    if (!specializationId) return null;
+    
+    try {
+      const response = await fetch(`/api/specializations/${specializationId}`);
+      if (!response.ok) throw new Error('Failed to fetch specialization details');
+      
+      const data = await response.json();
+      return data.industryId;
+    } catch (error) {
+      console.error('Failed to fetch industry for specialization:', error);
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchIndustries();
+  }, [fetchIndustries]);
 
   useEffect(() => {
     const fetchMember = async () => {
@@ -57,6 +122,33 @@ function MemberDetailsPage() {
 
         if (response.ok) {
           const data = await response.json();
+          
+          if (data.employments) {
+            const updatedEmployments = [...data.employments];
+            const industryPromises = [];
+            
+            for (let i = 0; i < updatedEmployments.length; i++) {
+              const employment = updatedEmployments[i];
+              if (employment.type === 'employed' && employment.details.specialization && !employment.details.industry) {
+                const promise = (async () => {
+                  const industryId = await getIndustryForSpecialization(employment.details.specialization);
+                  if (industryId) {
+                    updatedEmployments[i].details.industry = industryId;
+                    await fetchSpecializations(industryId);
+                  }
+                })();
+                industryPromises.push(promise);
+              } else if (employment.type === 'employed' && employment.details.industry) {
+                fetchSpecializations(employment.details.industry);
+              }
+            }
+            
+            if (industryPromises.length > 0) {
+              await Promise.all(industryPromises);
+              data.employments = updatedEmployments;
+            }
+          }
+          
           setMember(data);
         } else {
           toast({
@@ -80,7 +172,7 @@ function MemberDetailsPage() {
     if (user && params.id) {
       fetchMember();
     }
-  }, [user, params.id, toast]);
+  }, [user, params.id, toast, fetchSpecializations, getIndustryForSpecialization]);
 
   const handleSave = async () => {
     if (!member) return;
@@ -196,10 +288,21 @@ function MemberDetailsPage() {
 
     if (field.includes('.')) {
       const [, child] = field.split('.');
-      employment.details = {
-        ...employment.details,
-        [child]: value,
-      };
+      
+      if (child === 'industry' && typeof value === 'string') {
+        fetchSpecializations(value);
+        
+        employment.details = {
+          ...employment.details,
+          industry: value,
+          specialization: '',
+        };
+      } else {
+        employment.details = {
+          ...employment.details,
+          [child]: value,
+        };
+      }
     } else {
       if (field === 'type') {
         employment.type = value as 'employed' | 'business_owner' | 'student';
@@ -454,28 +557,25 @@ function MemberDetailsPage() {
                       </FormControl>
                     </GridItem>
                     
-                    <GridItem colSpan={2}>
-                      <Heading size="sm" mt={6} mb={3}>Social Media</Heading>
-                    </GridItem>
-                    
                     <GridItem>
                       <FormControl>
                         <FormLabel>LinkedIn</FormLabel>
                         <Input
                           value={member.socialPresence?.linkedInProfile || member.social?.linkedInProfile || ''}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            const value = e.target.value;
                             setMember({
                               ...member,
                               socialPresence: {
-                                ...member.socialPresence,
-                                linkedInProfile: e.target.value,
+                                ...(member.socialPresence || {}),
+                                linkedInProfile: value,
                               },
                               social: {
-                                ...member.social,
-                                linkedInProfile: e.target.value,
+                                ...(member.social || {}),
+                                linkedInProfile: value,
                               },
-                            })
-                          }
+                            });
+                          }}
                         />
                       </FormControl>
                     </GridItem>
@@ -485,19 +585,20 @@ function MemberDetailsPage() {
                         <FormLabel>Personal Website</FormLabel>
                         <Input
                           value={member.socialPresence?.personalWebsite || member.social?.personalWebsite || ''}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            const value = e.target.value;
                             setMember({
                               ...member,
                               socialPresence: {
-                                ...member.socialPresence,
-                                personalWebsite: e.target.value,
+                                ...(member.socialPresence || {}),
+                                personalWebsite: value,
                               },
                               social: {
-                                ...member.social,
-                                personalWebsite: e.target.value,
+                                ...(member.social || {}),
+                                personalWebsite: value,
                               },
-                            })
-                          }
+                            });
+                          }}
                         />
                       </FormControl>
                     </GridItem>
@@ -507,19 +608,20 @@ function MemberDetailsPage() {
                         <FormLabel>Instagram</FormLabel>
                         <Input
                           value={member.socialPresence?.instagramProfile || member.social?.instagramProfile || ''}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            const value = e.target.value;
                             setMember({
                               ...member,
                               socialPresence: {
-                                ...member.socialPresence,
-                                instagramProfile: e.target.value,
+                                ...(member.socialPresence || {}),
+                                instagramProfile: value,
                               },
                               social: {
-                                ...member.social,
-                                instagramProfile: e.target.value,
+                                ...(member.social || {}),
+                                instagramProfile: value,
                               },
-                            })
-                          }
+                            });
+                          }}
                         />
                       </FormControl>
                     </GridItem>
@@ -529,19 +631,20 @@ function MemberDetailsPage() {
                         <FormLabel>Facebook</FormLabel>
                         <Input
                           value={member.socialPresence?.facebookProfile || member.social?.facebookProfile || ''}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            const value = e.target.value;
                             setMember({
                               ...member,
                               socialPresence: {
-                                ...member.socialPresence,
-                                facebookProfile: e.target.value,
+                                ...(member.socialPresence || {}),
+                                facebookProfile: value,
                               },
                               social: {
-                                ...member.social,
-                                facebookProfile: e.target.value,
+                                ...(member.social || {}),
+                                facebookProfile: value,
                               },
-                            })
-                          }
+                            });
+                          }}
                         />
                       </FormControl>
                     </GridItem>
@@ -551,19 +654,20 @@ function MemberDetailsPage() {
                         <FormLabel>X / Twitter</FormLabel>
                         <Input
                           value={member.socialPresence?.xProfile || member.social?.xProfile || ''}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            const value = e.target.value;
                             setMember({
                               ...member,
                               socialPresence: {
-                                ...member.socialPresence,
-                                xProfile: e.target.value,
+                                ...(member.socialPresence || {}),
+                                xProfile: value,
                               },
                               social: {
-                                ...member.social,
-                                xProfile: e.target.value,
+                                ...(member.social || {}),
+                                xProfile: value,
                               },
-                            })
-                          }
+                            });
+                          }}
                         />
                       </FormControl>
                     </GridItem>
@@ -647,6 +751,53 @@ function MemberDetailsPage() {
                                       />
                                     </FormControl>
                                   </GridItem>
+                                  <GridItem>
+                                    <FormControl>
+                                      <FormLabel>Industry</FormLabel>
+                                      <Select
+                                        placeholder="Select Industry"
+                                        value={employment.details.industry || ''}
+                                        onChange={(e) =>
+                                          handleEmploymentChange(
+                                            index,
+                                            'details.industry',
+                                            e.target.value
+                                          )
+                                        }
+                                        isDisabled={isLoadingIndustries}
+                                      >
+                                        {industries.map((industry) => (
+                                          <option key={industry.id} value={industry.id}>
+                                            {industry.name}
+                                          </option>
+                                        ))}
+                                      </Select>
+                                    </FormControl>
+                                  </GridItem>
+                                  <GridItem>
+                                    <FormControl>
+                                      <FormLabel>Specialization</FormLabel>
+                                      <Select
+                                        placeholder="Select Specialization"
+                                        value={employment.details.specialization || ''}
+                                        onChange={(e) =>
+                                          handleEmploymentChange(
+                                            index,
+                                            'details.specialization',
+                                            e.target.value
+                                          )
+                                        }
+                                        isDisabled={!employment.details.industry || !specializations[employment.details.industry]}
+                                      >
+                                        {employment.details.industry && 
+                                         specializations[employment.details.industry]?.map((spec) => (
+                                          <option key={spec.id} value={spec.id}>
+                                            {spec.name}
+                                          </option>
+                                        ))}
+                                      </Select>
+                                    </FormControl>
+                                  </GridItem>
                                 </>
                               )}
 
@@ -670,7 +821,8 @@ function MemberDetailsPage() {
                                   <GridItem>
                                     <FormControl>
                                       <FormLabel>Industry</FormLabel>
-                                      <Input
+                                      <Select
+                                        placeholder="Select Industry"
                                         value={employment.details.industry || ''}
                                         onChange={(e) =>
                                           handleEmploymentChange(
@@ -679,7 +831,14 @@ function MemberDetailsPage() {
                                             e.target.value
                                           )
                                         }
-                                      />
+                                        isDisabled={isLoadingIndustries}
+                                      >
+                                        {industries.map((industry) => (
+                                          <option key={industry.id} value={industry.id}>
+                                            {industry.name}
+                                          </option>
+                                        ))}
+                                      </Select>
                                     </FormControl>
                                   </GridItem>
                                   <GridItem>
@@ -854,9 +1013,7 @@ function MemberDetailsPage() {
                         <FormLabel>Email Visibility</FormLabel>
                         <Select
                           value={member.visibility.contact.email}
-                          onChange={(e) =>
-                            handleVisibilityChange('contact', e.target.value as VisibilityOption, 'email')
-                          }
+                          onChange={(e) => handleVisibilityChange('contact', e.target.value as VisibilityOption, 'email')}
                         >
                           <option value="public">Public</option>
                           <option value="private">Private</option>
@@ -869,9 +1026,7 @@ function MemberDetailsPage() {
                         <FormLabel>Phone Number Visibility</FormLabel>
                         <Select
                           value={member.visibility.contact.phone}
-                          onChange={(e) =>
-                            handleVisibilityChange('contact', e.target.value as VisibilityOption, 'phone')
-                          }
+                          onChange={(e) => handleVisibilityChange('contact', e.target.value as VisibilityOption, 'phone')}
                         >
                           <option value="public">Public</option>
                           <option value="private">Private</option>
@@ -884,9 +1039,7 @@ function MemberDetailsPage() {
                         <FormLabel>Current Employment Visibility</FormLabel>
                         <Select
                           value={member.visibility.employment.current}
-                          onChange={(e) =>
-                            handleVisibilityChange('employment', e.target.value as VisibilityOption, 'current')
-                          }
+                          onChange={(e) => handleVisibilityChange('employment', e.target.value as VisibilityOption, 'current')}
                         >
                           <option value="public">Public</option>
                           <option value="private">Private</option>
@@ -899,9 +1052,7 @@ function MemberDetailsPage() {
                         <FormLabel>Employment History Visibility</FormLabel>
                         <Select
                           value={member.visibility.employment.history}
-                          onChange={(e) =>
-                            handleVisibilityChange('employment', e.target.value as VisibilityOption, 'history')
-                          }
+                          onChange={(e) => handleVisibilityChange('employment', e.target.value as VisibilityOption, 'history')}
                         >
                           <option value="public">Public</option>
                           <option value="private">Private</option>

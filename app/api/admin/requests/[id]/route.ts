@@ -56,6 +56,7 @@ async function patchHandler(
     if (action === 'approve') {
       // Check if member already exists to prevent duplicates
       const existingMember = await Member.findOne({ uid: membershipRequest.memberLogin.uid });
+      
       if (existingMember) {
         console.log(`Member already exists for UID: ${membershipRequest.memberLogin.uid}, skipping creation`);
         
@@ -99,11 +100,21 @@ async function patchHandler(
       // Create new member from request
       const employments = createEmploymentsFromRequest(membershipRequest);
 
-      // Debug skills data
-      console.log("Skills data:", JSON.stringify(membershipRequest.professionalInfo.skills, null, 2));
-      console.log("Social data:", JSON.stringify(membershipRequest.socialPresence, null, 2));
+      // Extract skills properly
+      console.log("Skills data received:", JSON.stringify(membershipRequest.professionalInfo.skills, null, 2));
+      
+      // Create proper skills object
+      const skillsData = membershipRequest.professionalInfo.skills ? {
+        skills: membershipRequest.professionalInfo.skills.skills || '',
+        description: membershipRequest.professionalInfo.skills.description || ''
+      } : { skills: '', description: '' };
+      
+      console.log("Prepared skills data:", JSON.stringify(skillsData, null, 2));
 
-      // Ensure all social fields are properly initialized
+      // Extract social media links properly
+      console.log("Social data received:", JSON.stringify(membershipRequest.socialPresence, null, 2));
+      
+      // Create proper social media object with non-null values
       const socialData = {
         linkedInProfile: membershipRequest.socialPresence?.linkedInProfile || '',
         personalWebsite: membershipRequest.socialPresence?.personalWebsite || '',
@@ -125,11 +136,10 @@ async function patchHandler(
         },
         contactInformation: membershipRequest.contactInformation,
         employments: employments,
-        // Properly assign skills with fallback to empty object
-        skills: membershipRequest.professionalInfo.skills || {},
-        // Explicitly map all social media fields to ensure none are missed
+        // Assign skills properly
+        skills: skillsData,
+        // Assign social media links to both properties
         socialPresence: socialData,
-        // Also preserve legacy social field with same explicit mapping
         social: socialData,
         visibility: {
           profile: membershipRequest.privacyConsent.displayInYellowPages ? 'public' : 'private',
