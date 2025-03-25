@@ -1,6 +1,17 @@
 "use client";
 import { useEffect, useState } from "react";
 import useMembershipRequest from "../hooks/useMembershipRequest";
+import {
+  FormControl,
+  FormLabel,
+  Input,
+  Button,
+  Text,
+  VStack,
+  FormErrorMessage,
+  HStack,
+  useColorMode,
+} from "@chakra-ui/react";
 
 interface Step3Props {
   next: () => void;
@@ -10,79 +21,126 @@ interface Step3Props {
 export default function Step3({ next, back }: Step3Props) {
   const { membershipData, updateSocialPresence } = useMembershipRequest();
   const [localSocial, setLocalSocial] = useState(membershipData.socialPresence);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { colorMode } = useColorMode();
+  const inputBg = colorMode === "light" ? "white" : "gray.700";
 
   useEffect(() => {
     setLocalSocial(membershipData.socialPresence);
   }, [membershipData.socialPresence]);
 
   const validateUrl = (url: string) => {
+    if (!url) return true; // Allow empty values
     return url.startsWith("http://") || url.startsWith("https://");
   };
 
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    
+    // Validate all social URLs
+    const urlFields = [
+      'linkedInProfile', 
+      'personalWebsite', 
+      'instagramProfile', 
+      'facebookProfile', 
+      'xProfile'
+    ];
+    
+    urlFields.forEach(field => {
+      if (localSocial[field as keyof typeof localSocial] && 
+          !validateUrl(localSocial[field as keyof typeof localSocial] as string)) {
+        newErrors[field] = "Please enter a valid URL (must start with http:// or https://)";
+      }
+    });
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   function handleNext() {
-    if (localSocial.personalWebsite && !validateUrl(localSocial.personalWebsite)) {
-      alert("Please enter a valid URL for your personal website (must start with http:// or https://).");
-      return;
+    if (validateForm()) {
+      updateSocialPresence(localSocial);
+      next();
     }
-    if (localSocial.linkedInProfile && !validateUrl(localSocial.linkedInProfile)) {
-      alert("Please enter a valid URL for your LinkedIn profile (must start with http:// or https://).");
-      return;
-    }
-    if (localSocial.facebookProfile && !validateUrl(localSocial.facebookProfile)) {
-      alert("Please enter a valid URL for your Facebook profile (must start with http:// or https://).");
-      return;
-    }
-    if (localSocial.instagramHandle && !localSocial.instagramHandle.startsWith("@")) {
-      alert("Instagram handle should start with '@'.");
-      return;
-    }
-    updateSocialPresence(localSocial);
-    next();
   }
 
   return (
-    <div className="bg-white p-4 rounded shadow w-full max-w-md mx-auto">
-      <h2 className="text-xl font-bold mb-4">Step 3: Social & Online Presence</h2>
-      <label className="block mb-1 font-semibold">Personal Website</label>
-      <input
-        type="text"
-        className="border w-full p-2 rounded mb-2"
-        placeholder="https://yourwebsite.com"
-        value={localSocial.personalWebsite || ""}
-        onChange={(e) => setLocalSocial({ ...localSocial, personalWebsite: e.target.value })}
-      />
-      <label className="block mb-1 font-semibold">LinkedIn Profile</label>
-      <input
-        type="text"
-        className="border w-full p-2 rounded mb-2"
-        placeholder="https://www.linkedin.com/..."
-        value={localSocial.linkedInProfile || ""}
-        onChange={(e) => setLocalSocial({ ...localSocial, linkedInProfile: e.target.value })}
-      />
-      <label className="block mb-1 font-semibold">Facebook Profile</label>
-      <input
-        type="text"
-        className="border w-full p-2 rounded mb-2"
-        placeholder="https://www.facebook.com/..."
-        value={localSocial.facebookProfile || ""}
-        onChange={(e) => setLocalSocial({ ...localSocial, facebookProfile: e.target.value })}
-      />
-      <label className="block mb-1 font-semibold">Instagram Handle</label>
-      <input
-        type="text"
-        className="border w-full p-2 rounded mb-4"
-        placeholder="@instagram"
-        value={localSocial.instagramHandle || ""}
-        onChange={(e) => setLocalSocial({ ...localSocial, instagramHandle: e.target.value })}
-      />
-      <div className="flex justify-between">
-        <button onClick={back} className="bg-gray-300 text-black px-4 py-2 rounded">
-          Previous
-        </button>
-        <button onClick={handleNext} className="bg-blue-500 text-white px-4 py-2 rounded">
-          Next
-        </button>
-      </div>
-    </div>
+    <VStack spacing={6} align="stretch">
+      <Text fontSize="2xl" fontWeight="bold" mb={2}>
+        Social & Online Presence
+      </Text>
+      <Text color="gray.600" mb={6}>
+        Share your professional online presence
+      </Text>
+
+      <FormControl isInvalid={!!errors.linkedInProfile}>
+        <FormLabel>LinkedIn Profile</FormLabel>
+        <Input
+          bg={inputBg}
+          type="url"
+          placeholder="https://www.linkedin.com/in/your-profile"
+          value={localSocial.linkedInProfile || ""}
+          onChange={(e) => setLocalSocial({ ...localSocial, linkedInProfile: e.target.value })}
+        />
+        <FormErrorMessage>{errors.linkedInProfile}</FormErrorMessage>
+      </FormControl>
+
+      <FormControl isInvalid={!!errors.personalWebsite}>
+        <FormLabel>Personal Website</FormLabel>
+        <Input
+          bg={inputBg}
+          type="url"
+          placeholder="https://your-website.com"
+          value={localSocial.personalWebsite || ""}
+          onChange={(e) => setLocalSocial({ ...localSocial, personalWebsite: e.target.value })}
+        />
+        <FormErrorMessage>{errors.personalWebsite}</FormErrorMessage>
+      </FormControl>
+      
+      <FormControl isInvalid={!!errors.instagramProfile}>
+        <FormLabel>Instagram Profile</FormLabel>
+        <Input
+          bg={inputBg}
+          type="url"
+          placeholder="https://www.instagram.com/your-username"
+          value={localSocial.instagramProfile || ""}
+          onChange={(e) => setLocalSocial({ ...localSocial, instagramProfile: e.target.value })}
+        />
+        <FormErrorMessage>{errors.instagramProfile}</FormErrorMessage>
+      </FormControl>
+      
+      <FormControl isInvalid={!!errors.facebookProfile}>
+        <FormLabel>Facebook Profile</FormLabel>
+        <Input
+          bg={inputBg}
+          type="url"
+          placeholder="https://www.facebook.com/your-profile"
+          value={localSocial.facebookProfile || ""}
+          onChange={(e) => setLocalSocial({ ...localSocial, facebookProfile: e.target.value })}
+        />
+        <FormErrorMessage>{errors.facebookProfile}</FormErrorMessage>
+      </FormControl>
+      
+      <FormControl isInvalid={!!errors.xProfile}>
+        <FormLabel>X Profile (Twitter)</FormLabel>
+        <Input
+          bg={inputBg}
+          type="url"
+          placeholder="https://x.com/your-username"
+          value={localSocial.xProfile || ""}
+          onChange={(e) => setLocalSocial({ ...localSocial, xProfile: e.target.value })}
+        />
+        <FormErrorMessage>{errors.xProfile}</FormErrorMessage>
+      </FormControl>
+
+      <HStack spacing={4} mt={8} justify="flex-end">
+        <Button size="lg" onClick={back} variant="outline">
+          Back
+        </Button>
+        <Button size="lg" colorScheme="blue" onClick={handleNext}>
+          Continue to Privacy Settings
+        </Button>
+      </HStack>
+    </VStack>
   );
 }

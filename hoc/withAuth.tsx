@@ -1,14 +1,15 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-"use client";
+'use client';
+
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/firebase";
 
-const withAuth = (Component: React.FC) => {
-  return function AuthWrapper(props: any) {
+// Improved type safety with generic props
+const withAuth = <P extends object>(Component: React.ComponentType<P>) => {
+  return function AuthWrapper(props: P) {
     const router = useRouter();
-    const [user, loading] = useAuthState(auth);
+    const [user, loading, error] = useAuthState(auth);
 
     useEffect(() => {
       if (!loading && !user) {
@@ -16,7 +17,26 @@ const withAuth = (Component: React.FC) => {
       }
     }, [user, loading, router]);
 
-    if (loading || !user) return <div>Loading...</div>;
+    // Handle authentication errors
+    if (error) {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="bg-red-50 p-4 rounded-lg">
+            <h3 className="text-red-800 font-medium">Authentication Error</h3>
+            <p className="text-red-600">{error.message}</p>
+          </div>
+        </div>
+      );
+    }
+
+    // Improved loading state
+    if (loading || !user) {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      );
+    }
 
     return <Component {...props} />;
   };
